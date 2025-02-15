@@ -1,0 +1,165 @@
+{
+  "Uuid": "f41f9715-f8e0-458d-95be-35be70591cc0",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Divide a duct or piping system into separate systems if possible",
+  "Name": "MEPSystem.DivideSystem",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nif isinstance(IN[0], list):\n\tsystems = UnwrapElement(IN[0])\nelse:\n\tsystems = [UnwrapElement(IN[0])]\n\t\nlistout = []\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor sys in systems:\n\tif sys.IsMultipeNetwork:\n\t\tids = sys.DivideSystem(doc)\n\t\tsublist = []\n\t\tfor id in ids:\n\t\t\tsublist.append(doc.GetElement(id).ToDSType(True))\n\t\tlistout.append(sublist)\nTransactionManager.Instance.TransactionTaskDone()\n\nOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "db5040f76fec4187a4b9ea31c2032314",
+      "Inputs": [
+        {
+          "Id": "ca67248ec7454d97a860166a19f82c8f",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "73dd1fdcdd98439593d63b6e2bfcfed9",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "System",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "32a9fa00cd714829bbfc1b8be799a42e",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "5baa32c94d8c443dab7fff70ab35bd1f",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Separated Systems",
+      "Id": "eed850eba750476bb4489481bed3f5a7",
+      "Inputs": [
+        {
+          "Id": "5828dd1fc5b54b16a528c714f03399be",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "73dd1fdcdd98439593d63b6e2bfcfed9",
+      "End": "5828dd1fc5b54b16a528c714f03399be",
+      "Id": "8237e6064bc2446991564bd2bd187bb5"
+    },
+    {
+      "Start": "5baa32c94d8c443dab7fff70ab35bd1f",
+      "End": "ca67248ec7454d97a860166a19f82c8f",
+      "Id": "c8af0c2f260d450abad8b9bc5446ba2e"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python: Divide system",
+        "Id": "db5040f76fec4187a4b9ea31c2032314",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 465.0,
+        "Y": 324.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "32a9fa00cd714829bbfc1b8be799a42e",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 274.0,
+        "Y": 330.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "eed850eba750476bb4489481bed3f5a7",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 687.0,
+        "Y": 329.0
+      }
+    ],
+    "Annotations": [],
+    "X": -429.412450585781,
+    "Y": -297.767757705469,
+    "Zoom": 1.78359936238281
+  }
+}

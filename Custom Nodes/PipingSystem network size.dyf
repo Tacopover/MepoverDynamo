@@ -1,0 +1,165 @@
+{
+  "Uuid": "d6bb31ef-6202-4200-9bd6-f1b727a8c87a",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Returns the number of elements in the piping network",
+  "Name": "PipingSystem network size",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#Many thanks to Konrad K Sobon for his awesome ProcessList function!\ndef Unwrap(item):\n\treturn UnwrapElement(item)\n\ndef ProcessList(_func, _list):\n    return map( lambda x: ProcessList(_func, x) if type(x)==list else _func(x), _list )\n\nif isinstance(IN[0], list):\n\tsystems = ProcessList(Unwrap, IN[0])\nelse:\n\tsystems = [Unwrap(IN[0])]\n\t\n\t\ndef getSystemSize(system):\n\tcount = None\n\ttry:\n\t\tcount = system.PipingNetwork.Size\n\texcept:\n\t\tpass\n\treturn count\n\n\t\t\t\n#Assign your output to the OUT variable.\n\nOUT = ProcessList(getSystemSize, systems)",
+      "VariableInputPorts": true,
+      "Id": "b0f503c66d0445638f96ab77b5df13af",
+      "Inputs": [
+        {
+          "Id": "ddc47d83c3fb49269df5a82a3270ba88",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "264cc93670ac49ad82d790a7c398a413",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "PipingSystem",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "2dcf2d75ddef46e08c2874a9e36b8599",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "3ed7e081618c4f0caec8387fd7213649",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "count",
+      "Id": "f808610e7ea14867a533775a2028ffb8",
+      "Inputs": [
+        {
+          "Id": "8c4532e3b1874b359dde3fb4400ebe24",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "264cc93670ac49ad82d790a7c398a413",
+      "End": "8c4532e3b1874b359dde3fb4400ebe24",
+      "Id": "3888c6955f344dc18e26b0a15b4f9032"
+    },
+    {
+      "Start": "3ed7e081618c4f0caec8387fd7213649",
+      "End": "ddc47d83c3fb49269df5a82a3270ba88",
+      "Id": "981ff30715d24be882cb482e4bcb9c0d"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python: Pipe Network Size",
+        "Id": "b0f503c66d0445638f96ab77b5df13af",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 449.0,
+        "Y": 423.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "2dcf2d75ddef46e08c2874a9e36b8599",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 248.0,
+        "Y": 425.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "f808610e7ea14867a533775a2028ffb8",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 720.0,
+        "Y": 420.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

@@ -1,0 +1,455 @@
+{
+  "Uuid": "6a1eda01-ac5d-44cd-ab6d-c4a9bfcf9e7b",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Places accessories or fittings in a pipe or duct",
+  "Name": "MEPFitting.ByPointsAndCurve",
+  "ElementResolver": {
+    "ResolutionMap": {
+      "FamilyType": {
+        "Key": "Revit.Elements.FamilyType",
+        "Value": "RevitNodes.dll"
+      }
+    }
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nimport math\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nfrom System.Collections.Generic import List\n\nif isinstance(IN[0], list):\n\tducts = UnwrapElement(IN[0])\nelse:\n\tducts = [UnwrapElement(IN[0])]\n\t\nif isinstance(IN[1], list):\n\tpoints = IN[1]\nelse:\n\tpoints = [IN[1]]\n\nif isinstance(IN[2], list):\n\tfamtype = UnwrapElement(IN[2])\nelse:\n\tfamtype = [UnwrapElement(IN[2])]\nftl = len(famtype)\n\ndef IsParallel(dir1,dir2):\n\tif dir1.Normalize().IsAlmostEqualTo(dir2.Normalize()):\n\t\treturn True\n\tif dir1.Normalize().Negate().IsAlmostEqualTo(dir2.Normalize()):\n\t\treturn True\n\treturn False\n\t\ndef measure(startpoint, point):\n\treturn startpoint.DistanceTo(point)\n\t\ndef copyElement(element, oldloc, loc):\n\t\n\telementlist = List[ElementId]()\n\telementlist.Add(element.Id)\n\tOffsetZ = (oldloc.Z - loc.Z)*-1\n\tOffsetX = (oldloc.X - loc.X)*-1\n\tOffsetY = (oldloc.Y - loc.Y)*-1\n\tdirection = XYZ(OffsetX,OffsetY,OffsetZ)\n\tnewelementId = ElementTransformUtils.CopyElements(doc,elementlist,direction)\n\tnewelement = doc.GetElement(newelementId[0])\n\treturn newelement\n\ndef GetDirection(faminstance):\n\tfor c in faminstance.MEPModel.ConnectorManager.Connectors:\n\t\tconn = c\n\t\tbreak\n\treturn conn.CoordinateSystem.BasisZ\n\ndef GetClosestDirection(faminstance, lineDirection):\n\tconndir = None\n\tflat_linedir = XYZ(lineDirection.X,lineDirection.Y,0).Normalize()\n\tfor conn in faminstance.MEPModel.ConnectorManager.Connectors:\n\t\tconndir = conn.CoordinateSystem.BasisZ\n\t\tif flat_linedir.IsAlmostEqualTo(conndir):\n\t\t\treturn conndir\n\treturn conndir\n\t\n\n\n#global variables for rotating new families\ntempfamtype = None\nxAxis = XYZ(1,0,0)\ndef placeFitting(duct,point,familytype,lineDirection):\n\t\n\ttoggle = False\n\tisVertical = False\n\t\n\t\n\tglobal tempfamtype\n\tif tempfamtype == None:\n\t\ttempfamtype = familytype\n\t\ttoggle = True\n\telif tempfamtype != familytype:\n\t\ttoggle = True\n\t\ttempfamtype = familytype\n\tlevel = duct.ReferenceLevel\n\t\n\twidth = 4\n\theight = 4\n\tradius = 2\n\tround = False\n\tconnectors = duct.ConnectorManager.Connectors\n\tfor c in connectors:\n\t\tif c.ConnectorType != ConnectorType.End:\n\t\t\tcontinue\n\t\tshape = c.Shape\n\t\tif shape == ConnectorProfileType.Round:\n\t\t\tradius = c.Radius\n\t\t\tround = True\t\n\t\t\tbreak\n\t\telif shape == ConnectorProfileType.Rectangular or shape == ConnectorProfileType.Oval:\n\t\t\tif abs(lineDirection.Z) == 1:\n\t\t\t\tisVertical = True\n\t\t\t\tyDir = c.CoordinateSystem.BasisY\n\t\t\twidth = c.Width\n\t\t\theight = c.Height\n\t\t\tbreak\n\t\t\n\t\t\t\n\tpoint = XYZ(point.X,point.Y,point.Z-level.Elevation)\n\tnewfam = doc.Create.NewFamilyInstance(point,familytype,level,Structure.StructuralType.NonStructural)\n\tdoc.Regenerate()\n\ttransform = newfam.GetTransform()\n\taxis = Line.CreateUnbound(transform.Origin, transform.BasisZ)\n\tglobal xAxis\n\tif toggle:\n\t\txAxis = GetDirection(newfam)\n\tzAxis = XYZ(0,0,1)\n\t\n\tif isVertical:\n\t\tangle = xAxis.AngleOnPlaneTo(yDir,zAxis)\n\telse:\n\t\tangle = xAxis.AngleOnPlaneTo(lineDirection,zAxis)\n\t\n\t\n\tElementTransformUtils.RotateElement(doc,newfam.Id,axis,angle)\n\tdoc.Regenerate()\n\t\n\tif lineDirection.Z != 0:\n\t\tnewAxis = GetClosestDirection(newfam,lineDirection)\n\t\tyAxis = newAxis.CrossProduct(zAxis)\n\t\tangle2 = newAxis.AngleOnPlaneTo(lineDirection,yAxis)\n\t\taxis2 = Line.CreateUnbound(transform.Origin, yAxis)\n\t\tElementTransformUtils.RotateElement(doc,newfam.Id,axis2,angle2)\n\t\n\tresult = {}\n\tconnpoints = []\n\tfamconns = newfam.MEPModel.ConnectorManager.Connectors\n\t\n\tif round:\n\t\tfor conn in famconns:\n\t\t\tif IsParallel(lineDirection,conn.CoordinateSystem.BasisZ) == False:\n\t\t\t\tcontinue\n\t\t\tif conn.Shape != shape:\n\t\t\t\tcontinue\n\t\t\tconn.Radius = radius\n\t\t\tconnpoints.append(conn.Origin)\n\telse:\n\t\tfor conn in famconns:\n\t\t\tif IsParallel(lineDirection,conn.CoordinateSystem.BasisZ) == False:\n\t\t\t\tcontinue\n\t\t\tif conn.Shape != shape:\n\t\t\t\tcontinue\n\t\t\tconn.Width = width\n\t\t\tconn.Height = height\n\t\t\tconnpoints.append(conn.Origin)\n\t\n\tresult[newfam] = connpoints\n\treturn result\n\t\n\t\ndef ConnectElements(duct, fitting):\n\tductconns = duct.ConnectorManager.Connectors\n\tfittingconns = fitting.MEPModel.ConnectorManager.Connectors\n\tfor conn in fittingconns:\n\t\tfor ductconn in ductconns:\n\t\t\tresult = ductconn.Origin.IsAlmostEqualTo(conn.Origin)\n\t\t\tif result:\n\t\t\t\tductconn.ConnectTo(conn)\n\t\t\t\tbreak\n\treturn result\n\ndef SortedPoints(fittingspoints,ductStartPoint):\n\tsortedpoints = sorted(fittingspoints, key=lambda x: measure(ductStartPoint, x))\n\treturn sortedpoints\n\t\n\nductsout = []\nfittingsout = []\ncombilist = []\n\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor typ in famtype:\n\tif typ.IsActive == False:\n\t\ttyp.Activate()\n\t\tdoc.Regenerate()\n\nfor i,duct in enumerate(ducts):\n\tListOfPoints = [x.ToXyz() for x in points[i]]\n\tfamilytype = famtype[i%ftl]\n\t#create duct location line\n\tductline = duct.Location.Curve\n\tductStartPoint = ductline.GetEndPoint(0)\n\tductEndPoint = ductline.GetEndPoint(1)\n\t#get end connector to reconnect later\n\tendIsConnected = False\n\tendrefconn = None\n\tfor ductconn in duct.ConnectorManager.Connectors:\n\t\tif ductconn.Origin.DistanceTo(ductEndPoint) < 5/304.8:\n\t\t\tif ductconn.IsConnected:\n\t\t\t\tendIsConnected = True\n\t\t\t\tfor refconn in ductconn.AllRefs:\n\t\t\t\t\tif refconn.ConnectorType != ConnectorType.Logical and refconn.Owner.Id.IntegerValue != duct.Id.IntegerValue:\n\t\t\t\t\t\tendrefconn = refconn\n\t\t\t\n\t#sort the points from start of duct to end of duct\n\tpointlist = SortedPoints(ListOfPoints,ductStartPoint)\n\t\n\tductlist = []\n\tnewFittings = []\n\tductlist.append(duct)\n\t\n\ttempStartPoint = None\n\ttempEndPoint = None\n\t\n\tlineDirection = ductline.Direction\n\t\n\tfor i,p in enumerate(pointlist):\t\t\n\t\toutput = placeFitting(duct,p,familytype,lineDirection)\n\t\tnewfitting = output.keys()[0]\n\t\tnewFittings.append(newfitting)\n\t\tfittingpoints = output.values()[0]\n\t\t\n\t\ttempPoints = SortedPoints(fittingpoints,ductStartPoint)\n\t\tif i == 0:\n\t\t\ttempEndPoint = tempPoints[0]\n\t\t\ttempStartPoint = tempPoints[1]\t\t\t\n\t\t\tnewduct = copyElement(duct,ductStartPoint,tempStartPoint)\t\n\t\t\tduct.Location.Curve = Line.CreateBound(ductStartPoint,tempEndPoint)\n\t\t\tductlist.append(newduct)\n\t\t\tcombilist.append([duct,newfitting])\n\t\t\tcombilist.append([newduct,newfitting])\n\t\telse:\n\t\t\tcombilist.append([newduct,newfitting])\n\t\t\ttempEndPoint = tempPoints[0]\n\t\t\tnewduct = copyElement(duct,ductStartPoint,tempStartPoint)\n\t\t\tductlist[-1].Location.Curve = Line.CreateBound(tempStartPoint,tempEndPoint)\n\t\t\ttempStartPoint = tempPoints[1]\n\t\t\tductlist.append(newduct)\n\t\t\tcombilist.append([newduct,newfitting])\n\t\n\tnewline = Line.CreateBound(tempStartPoint,ductEndPoint)\n\tductlist[-1].Location.Curve = newline\n\t\n\tductsout.append(ductlist)\n\tfittingsout.append(newFittings)\n\tdoc.Regenerate()\n\n\tif endIsConnected:\n\t\tfor conn in ductlist[-1].ConnectorManager.Connectors:\n\t\t\tif conn.Origin.DistanceTo(ductEndPoint) < 5/304.8:\n\t\t\t\tendrefconn.ConnectTo(conn)\n\t\t\t\nTransactionManager.Instance.TransactionTaskDone()\n\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor combi in combilist:\n\tConnectElements(combi[0],combi[1])\nTransactionManager.Instance.TransactionTaskDone()\n\nOUT = ductsout, fittingsout",
+      "VariableInputPorts": true,
+      "Id": "683a4d19fffc47f5a8104abb0ac2d38d",
+      "Inputs": [
+        {
+          "Id": "871bc38537994e5090cda5a50abad1c2",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "7cda6dc6e0a74b25be83680a5c17096e",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "7e4cdca9d8c142b598127b80fb031fb8",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "450164adfc944a21912fff0aaebb3adb",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "MEPCurve",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "7fb99408d8cb44e981860e5fb192968c",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "a69e2271577b4d0484f9af3ba9c30c23",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "ListOfPoints",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "d1f40118f111436994e1b92de147d2be",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "76d4a5caebed45f982f30432fcf8d658",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "MEPFitting",
+        "TypeName": "Revit.Elements.FamilyType",
+        "TypeRank": 0,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "7e2b95467c584f4caf40d7c98fab7b13",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "c121d5762926430b9dd941e2856572cc",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "MEPCurves",
+      "Id": "bc63ab2a568d415cb065aae78a4563b9",
+      "Inputs": [
+        {
+          "Id": "611e84da228243dd89005f9a7e8a73a1",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[0];",
+      "Id": "e33237f228d24ce3898430682bcff095",
+      "Inputs": [
+        {
+          "Id": "1e786058533c418e8df17943b24c3de5",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "0e194e78efdd42f39fe322f7ae8db6fa",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[1];",
+      "Id": "b30667f7680c46c49c0dd662ae4ec5d2",
+      "Inputs": [
+        {
+          "Id": "d631fb07fd0b4e95b2da7a608b8c8fe9",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "9ffb55021c0943359b4b1ddc8a620cef",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Fittings",
+      "Id": "32eee06052744b3a917de3f64efc6fb9",
+      "Inputs": [
+        {
+          "Id": "cb2a99e4bb6d48ee8c2670ac1a8627a1",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nimport math\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nfrom System.Collections.Generic import List\n\nif isinstance(IN[0], list):\n\tducts = UnwrapElement(IN[0])\nelse:\n\tducts = [UnwrapElement(IN[0])]\n\t\nif isinstance(IN[1], list):\n\tpoints = IN[1]\nelse:\n\tpoints = [IN[1]]\n\nif isinstance(IN[2], list):\n\tfamtype = UnwrapElement(IN[2])\nelse:\n\tfamtype = [UnwrapElement(IN[2])]\nftl = len(famtype)\n\ndef IsParallel(dir1,dir2):\n\tif dir1.Normalize().IsAlmostEqualTo(dir2.Normalize()):\n\t\treturn True\n\tif dir1.Normalize().Negate().IsAlmostEqualTo(dir2.Normalize()):\n\t\treturn True\n\treturn False\n\t\ndef measure(startpoint, point):\n\treturn startpoint.DistanceTo(point)\n\t\ndef copyElement(element, oldloc, loc):\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\telementlist = List[ElementId]()\n\telementlist.Add(element.Id)\n\tOffsetZ = (oldloc.Z - loc.Z)*-1\n\tOffsetX = (oldloc.X - loc.X)*-1\n\tOffsetY = (oldloc.Y - loc.Y)*-1\n\tdirection = XYZ(OffsetX,OffsetY,OffsetZ)\n\tnewelementId = ElementTransformUtils.CopyElements(doc,elementlist,direction)\n\tnewelement = doc.GetElement(newelementId[0])\n\tTransactionManager.Instance.TransactionTaskDone()\n\treturn newelement\n\ndef GetDirection(faminstance):\n\tfor c in faminstance.MEPModel.ConnectorManager.Connectors:\n\t\tconn = c\n\t\tbreak\n\treturn conn.CoordinateSystem.BasisZ\n\ndef GetClosestDirection(faminstance, lineDirection):\n\tconndir = None\n\tflat_linedir = XYZ(lineDirection.X,lineDirection.Y,0).Normalize()\n\tfor conn in faminstance.MEPModel.ConnectorManager.Connectors:\n\t\tconndir = conn.CoordinateSystem.BasisZ\n\t\tif flat_linedir.IsAlmostEqualTo(conndir):\n\t\t\treturn conndir\n\treturn conndir\n\t\n\n\n#global variables for rotating new families\ntempfamtype = None\nxAxis = XYZ(1,0,0)\ndef placeFitting(duct,point,familytype,lineDirection):\n\t\n\ttoggle = False\n\tisVertical = False\n\t\n\t\n\tglobal tempfamtype\n\tif tempfamtype == None:\n\t\ttempfamtype = familytype\n\t\ttoggle = True\n\telif tempfamtype != familytype:\n\t\ttoggle = True\n\t\ttempfamtype = familytype\n\tlevel = duct.ReferenceLevel\n\t\n\twidth = 4\n\theight = 4\n\tradius = 2\n\tround = False\n\tconnectors = duct.ConnectorManager.Connectors\n\tfor c in connectors:\n\t\tif c.ConnectorType != ConnectorType.End:\n\t\t\tcontinue\n\t\tshape = c.Shape\n\t\tif shape == ConnectorProfileType.Round:\n\t\t\tradius = c.Radius\n\t\t\tround = True\t\n\t\t\tbreak\n\t\telif shape == ConnectorProfileType.Rectangular or shape == ConnectorProfileType.Oval:\n\t\t\tif abs(lineDirection.Z) == 1:\n\t\t\t\tisVertical = True\n\t\t\t\tyDir = c.CoordinateSystem.BasisY\n\t\t\twidth = c.Width\n\t\t\theight = c.Height\n\t\t\tbreak\n\t\t\n\tTransactionManager.Instance.EnsureInTransaction(doc)\t\t\n\tpoint = XYZ(point.X,point.Y,point.Z-level.Elevation)\n\tnewfam = doc.Create.NewFamilyInstance(point,familytype,level,Structure.StructuralType.NonStructural)\n\tdoc.Regenerate()\n\ttransform = newfam.GetTransform()\n\taxis = Line.CreateUnbound(transform.Origin, transform.BasisZ)\n\tglobal xAxis\n\tif toggle:\n\t\txAxis = GetDirection(newfam)\n\tzAxis = XYZ(0,0,1)\n\t\n\tif isVertical:\n\t\tangle = xAxis.AngleOnPlaneTo(yDir,zAxis)\n\telse:\n\t\tangle = xAxis.AngleOnPlaneTo(lineDirection,zAxis)\n\t\n\t\n\tElementTransformUtils.RotateElement(doc,newfam.Id,axis,angle)\n\tdoc.Regenerate()\n\t\n\tif lineDirection.Z != 0:\n\t\tnewAxis = GetClosestDirection(newfam,lineDirection)\n\t\tyAxis = newAxis.CrossProduct(zAxis)\n\t\tangle2 = newAxis.AngleOnPlaneTo(lineDirection,yAxis)\n\t\taxis2 = Line.CreateUnbound(transform.Origin, yAxis)\n\t\tElementTransformUtils.RotateElement(doc,newfam.Id,axis2,angle2)\n\t\n\tresult = {}\n\tconnpoints = []\n\tfamconns = newfam.MEPModel.ConnectorManager.Connectors\n\t\n\tif round:\n\t\tfor conn in famconns:\n\t\t\tif IsParallel(lineDirection,conn.CoordinateSystem.BasisZ) == False:\n\t\t\t\tcontinue\n\t\t\tif conn.Shape != shape:\n\t\t\t\tcontinue\n\t\t\tconn.Radius = radius\n\t\t\tconnpoints.append(conn.Origin)\n\telse:\n\t\tfor conn in famconns:\n\t\t\tif IsParallel(lineDirection,conn.CoordinateSystem.BasisZ) == False:\n\t\t\t\tcontinue\n\t\t\tif conn.Shape != shape:\n\t\t\t\tcontinue\n\t\t\tconn.Width = width\n\t\t\tconn.Height = height\n\t\t\tconnpoints.append(conn.Origin)\n\tTransactionManager.Instance.TransactionTaskDone()\n\tresult[newfam] = connpoints\n\treturn result\n\t\n\t\ndef ConnectElements(duct, fitting):\n\tductconns = duct.ConnectorManager.Connectors\n\tfittingconns = fitting.MEPModel.ConnectorManager.Connectors\n\t\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor conn in fittingconns:\n\t\tfor ductconn in ductconns:\n\t\t\tresult = ductconn.Origin.IsAlmostEqualTo(conn.Origin)\n\t\t\tif result:\n\t\t\t\tductconn.ConnectTo(conn)\n\t\t\t\tbreak\n\tTransactionManager.Instance.TransactionTaskDone()\n\treturn result\n\ndef SortedPoints(fittingspoints,ductStartPoint):\n\tsortedpoints = sorted(fittingspoints, key=lambda x: measure(ductStartPoint, x))\n\treturn sortedpoints\n\t\n\nductsout = []\nfittingsout = []\ncombilist = []\n\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor typ in famtype:\n\tif typ.IsActive == False:\n\t\ttyp.Activate()\n\t\tdoc.Regenerate()\nTransactionManager.Instance.TransactionTaskDone()\n\nfor i,duct in enumerate(ducts):\n\tListOfPoints = [x.ToXyz() for x in points[i]]\n\tfamilytype = famtype[i%ftl]\n\t#create duct location line\n\tductline = duct.Location.Curve\n\tductStartPoint = ductline.GetEndPoint(0)\n\tductEndPoint = ductline.GetEndPoint(1)\n\t#get end connector to reconnect later\n\tendIsConnected = False\n\tendrefconn = None\n\tfor ductconn in duct.ConnectorManager.Connectors:\n\t\tif ductconn.Origin.DistanceTo(ductEndPoint) < 5/304.8:\n\t\t\tif ductconn.IsConnected:\n\t\t\t\tendIsConnected = True\n\t\t\t\tfor refconn in ductconn.AllRefs:\n\t\t\t\t\tif refconn.ConnectorType != ConnectorType.Logical and refconn.Owner.Id.IntegerValue != duct.Id.IntegerValue:\n\t\t\t\t\t\tendrefconn = refconn\n\t\t\t\n\t#sort the points from start of duct to end of duct\n\tpointlist = SortedPoints(ListOfPoints,ductStartPoint)\n\t\n\tductlist = []\n\tnewFittings = []\n\tductlist.append(duct)\n\t\n\ttempStartPoint = None\n\ttempEndPoint = None\n\t\n\tlineDirection = ductline.Direction\n\t\n\tfor i,p in enumerate(pointlist):\t\t\n\t\toutput = placeFitting(duct,p,familytype,lineDirection)\n\t\tnewfitting = output.keys()[0]\n\t\tnewFittings.append(newfitting)\n\t\tfittingpoints = output.values()[0]\n\t\t\n\t\ttempPoints = SortedPoints(fittingpoints,ductStartPoint)\n\t\tif i == 0:\n\t\t\ttempEndPoint = tempPoints[0]\n\t\t\ttempStartPoint = tempPoints[1]\t\t\t\n\t\t\tnewduct = copyElement(duct,ductStartPoint,tempStartPoint)\t\n\t\t\tduct.Location.Curve = Line.CreateBound(ductStartPoint,tempEndPoint)\n\t\t\tductlist.append(newduct)\n\t\t\tcombilist.append([duct,newfitting])\n\t\t\tcombilist.append([newduct,newfitting])\n\t\telse:\n\t\t\tcombilist.append([newduct,newfitting])\n\t\t\ttempEndPoint = tempPoints[0]\n\t\t\tnewduct = copyElement(duct,ductStartPoint,tempStartPoint)\n\t\t\tductlist[-1].Location.Curve = Line.CreateBound(tempStartPoint,tempEndPoint)\n\t\t\ttempStartPoint = tempPoints[1]\n\t\t\tductlist.append(newduct)\n\t\t\tcombilist.append([newduct,newfitting])\n\t\n\n\t\n\tnewline = Line.CreateBound(tempStartPoint,ductEndPoint)\n\tductlist[-1].Location.Curve = newline\n\t\n\tductsout.append(ductlist)\n\tfittingsout.append(newFittings)\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tdoc.Regenerate()\n\tTransactionManager.Instance.TransactionTaskDone()\n\n\tif endIsConnected:\n\t\tfor conn in ductlist[-1].ConnectorManager.Connectors:\n\t\t\tif conn.Origin.DistanceTo(ductEndPoint) < 5/304.8:\n\t\t\t\tendrefconn.ConnectTo(conn)\n\t\t\t\n\n\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor combi in combilist:\n\tConnectElements(combi[0],combi[1])\nTransactionManager.Instance.TransactionTaskDone()\n\nOUT = ductsout, fittingsout",
+      "VariableInputPorts": true,
+      "Id": "aee9b6a8ed0e4ecb921967b020d36366",
+      "Inputs": [
+        {
+          "Id": "ce0ca0cf464f463fb8d6035dccb6648c",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "3240945be7914379bb83dc6508151b30",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "af30d05cedb442f6a72ae3f655403764",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "f4c3c25a958b4b48a576787f15babc89",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "a69e2271577b4d0484f9af3ba9c30c23",
+      "End": "ce0ca0cf464f463fb8d6035dccb6648c",
+      "Id": "79547cad26ec4950811d03bae6f00837"
+    },
+    {
+      "Start": "76d4a5caebed45f982f30432fcf8d658",
+      "End": "3240945be7914379bb83dc6508151b30",
+      "Id": "f58b4c335f60469ca8b5c9826d1d154d"
+    },
+    {
+      "Start": "c121d5762926430b9dd941e2856572cc",
+      "End": "af30d05cedb442f6a72ae3f655403764",
+      "Id": "5bf1b75c84c24d7b8add5f38c57e73b7"
+    },
+    {
+      "Start": "0e194e78efdd42f39fe322f7ae8db6fa",
+      "End": "611e84da228243dd89005f9a7e8a73a1",
+      "Id": "c8f0ec566f454168a3fbc4432c64c080"
+    },
+    {
+      "Start": "9ffb55021c0943359b4b1ddc8a620cef",
+      "End": "cb2a99e4bb6d48ee8c2670ac1a8627a1",
+      "Id": "0edf0e4651904ac5b3039920ce80d17e"
+    },
+    {
+      "Start": "f4c3c25a958b4b48a576787f15babc89",
+      "End": "1e786058533c418e8df17943b24c3de5",
+      "Id": "d03999353c7843d8b5d377a1fad726a3"
+    },
+    {
+      "Start": "f4c3c25a958b4b48a576787f15babc89",
+      "End": "d631fb07fd0b4e95b2da7a608b8c8fe9",
+      "Id": "fc6bdc63e7224aa2ab96a6524305c162"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.3.0.5885",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "683a4d19fffc47f5a8104abb0ac2d38d",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 345.0,
+        "Y": 246.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "7fb99408d8cb44e981860e5fb192968c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 89.2138015414088,
+        "Y": 167.440602947161
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "d1f40118f111436994e1b92de147d2be",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 108.0,
+        "Y": 261.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "7e2b95467c584f4caf40d7c98fab7b13",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 100.395242666011,
+        "Y": 383.192227930204
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "bc63ab2a568d415cb065aae78a4563b9",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 634.0,
+        "Y": 223.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "e33237f228d24ce3898430682bcff095",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 514.0,
+        "Y": 202.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "b30667f7680c46c49c0dd662ae4ec5d2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 528.5,
+        "Y": 323.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "32eee06052744b3a917de3f64efc6fb9",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 652.5,
+        "Y": 326.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "aee9b6a8ed0e4ecb921967b020d36366",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 374.44212729527851,
+        "Y": 452.10856879924518
+      }
+    ],
+    "Annotations": [],
+    "X": -62.1180621600888,
+    "Y": -84.9398587676648,
+    "Zoom": 1.07925372895184
+  }
+}

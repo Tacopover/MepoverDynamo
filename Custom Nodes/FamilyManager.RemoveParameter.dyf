@@ -1,0 +1,165 @@
+{
+  "Uuid": "9180ddc5-8c6c-4e8c-b9f4-e0b0bd3828af",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Family",
+  "Description": "Searches every family parameter for the given (sub)string and removes that parameter (only works in Family Editor)",
+  "Name": "FamilyManager.RemoveParameter",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nsearch = IN[0]\n\nFamilyMan = doc.FamilyManager\nremoved = []\n\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor param in FamilyMan.Parameters:\n\tparamName = param.Definition.Name\n\tif search in paramName:\n\t\ttry:\n\t\t\tFamilyMan.RemoveParameter(param)\n\t\t\tremoved.append(paramName)\n\t\texcept:\n\t\t\tpass\n\t\n\t\nTransactionManager.Instance.TransactionTaskDone()\n\t\n\t\nOUT = removed",
+      "VariableInputPorts": true,
+      "Id": "93728c6bb4694b848d5832cb1321e9ba",
+      "Inputs": [
+        {
+          "Id": "20da8c0dc70b49e49ffee97b71b9462f",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "09142788dbd4426e860ff84485b7ef4b",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Search",
+        "TypeName": "string",
+        "TypeRank": 0,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "6399c25cf7f64ae6a18f10d36a0d48a3",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "bc68d6b847844804aceaf716d94cf95a",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Removed : string",
+      "Id": "09a9c8a25fb840468e0045dc1bc3ab97",
+      "Inputs": [
+        {
+          "Id": "596035e6b4bc4775917d0baa3f196219",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "09142788dbd4426e860ff84485b7ef4b",
+      "End": "596035e6b4bc4775917d0baa3f196219",
+      "Id": "be7f20e621a5428aacf3b302319b34cb"
+    },
+    {
+      "Start": "bc68d6b847844804aceaf716d94cf95a",
+      "End": "20da8c0dc70b49e49ffee97b71b9462f",
+      "Id": "21130a691a8e4dcca413753be5d6b8bb"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "python script",
+        "Id": "93728c6bb4694b848d5832cb1321e9ba",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 364.0,
+        "Y": 277.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "6399c25cf7f64ae6a18f10d36a0d48a3",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 129.0,
+        "Y": 157.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "09a9c8a25fb840468e0045dc1bc3ab97",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 493.0,
+        "Y": 428.0
+      }
+    ],
+    "Annotations": [],
+    "X": -47.0,
+    "Y": -5.0,
+    "Zoom": 1.0
+  }
+}

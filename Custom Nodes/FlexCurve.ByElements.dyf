@@ -1,0 +1,265 @@
+{
+  "Uuid": "f1ac6ca4-ba83-46c2-afa6-eabb3873d1bc",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Creates a flex duct or flex pipe between 2 elements. Input IN[2] expects a FlexDuctType or FlexPipeType",
+  "Name": "FlexCurve.ByElements",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "3205ebf73104418cae97a53ef4cd3832",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "58a7cef8ef7246b1a0a88de64829ef97",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "ee6f9e8277a84befa7fab4add907125f",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "15429726c19f4debb9bab18482621cfa",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "FlexMEPType",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "e5d4749b03024c698fbb80375a6e5477",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "ff77c443ce9c45a480fc39fc5912e3c0",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "FlexMEP",
+      "Id": "9c53f782e13e4c5b8927350fc6000b1c",
+      "Inputs": [
+        {
+          "Id": "d228731dab85428b929e1ec46d5209f8",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nclr.AddReference('System')\t\t\nfrom System.Collections.Generic import List\n\nif isinstance(IN[0], list):\n\tpipe1 = UnwrapElement(IN[0])\nelse:\n\tpipe1 = [UnwrapElement(IN[0])]\nif isinstance(IN[1], list):\n\tpipe2 = UnwrapElement(IN[1])\nelse:\n\tpipe2 = [UnwrapElement(IN[1])]\nflextype = UnwrapElement(IN[2])\n\n\ndef closest_connectors(pipe1, pipe2):\n\ttry:\n\t\tconn1 = pipe1.ConnectorManager.UnusedConnectors\n\texcept:\n\t\tconn1 = pipe1.MEPModel.ConnectorManager.UnusedConnectors\n\ttry:\n\t\tconn2 = pipe2.ConnectorManager.UnusedConnectors\n\texcept:\n\t\tconn2 = pipe2.MEPModel.ConnectorManager.UnusedConnectors\n\t\n\tdist = 100000000\n\tconnset = None\n\tfor c in conn1:\n\t\tfor d in conn2:\n\t\t\tconndist = c.Origin.DistanceTo(d.Origin)\n\t\t\tif conndist < dist:\n\t\t\t\tdist = conndist\n\t\t\t\tconnset = [c,d]\n\treturn connset\n\t\ndef createFlexPipe(conn1,conn2,starttan,endtan,levelid,systype):\n\tpoints = List[XYZ]([conn1.CoordinateSystem.Origin,conn2.CoordinateSystem.Origin])\n\tflex = Plumbing.FlexPipe.Create(doc,systype,flextype.Id,levelid,starttan,endtan,points)\n\tparam = flex.get_Parameter(BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)\n\tparam.Set(conn1.Radius*2)\n\treturn flex\n\t\ndef createFlexDuct(conn1,conn2,starttan,endtan,levelid,systype):\n\tpoints = List[XYZ]([conn1.CoordinateSystem.Origin,conn2.CoordinateSystem.Origin])\n\tflex = Mechanical.FlexDuct.Create(doc,systype,flextype.Id,levelid,starttan,endtan,points)\n\tround = True\n\ttry:\n\t\tdiameter = flex.Diameter\n\texcept:\n\t\tround = False\n\tif round:\n\t\tparam = flex.get_Parameter(BuiltInParameter.RBS_CURVE_DIAMETER_PARAM)\n\t\tif conn1.Shape == ConnectorProfileType.Round:\n\t\t\tparam.Set(conn1.Radius*2)\n\t\telif conn2.Shape == ConnectorProfileType.Round:\n\t\t\tparam.Set(conn2.Radius*2)\n\t\telse:\n\t\t\tparam.Set(conn1.Width)\n\t\t\t\n\telse:\n\t\tparam_width = flex.get_Parameter(BuiltInParameter.RBS_CURVE_WIDTH_PARAM)\n\t\tparam_height = flex.get_Parameter(BuiltInParameter.RBS_CURVE_HEIGHT_PARAM)\n\t\tif conn1.Shape == ConnectorProfileType.Rectangular:\n\t\t\tparam_width.Set(conn1.Width)\n\t\t\tparam_height.Set(conn1.Height)\n\t\telif conn2.Shape == ConnectorProfileType.Rectangular:\n\t\t\tparam_width.Set(conn2.Width)\n\t\t\tparam_height.Set(conn2.Height)\n\t\telse:\n\t\t\tparam_width.Set(conn1.Radius*2)\n\t\t\tparam_height.Set(conn1.Radius*2)\n\treturn flex\n\n\t\nfittings = []\n\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor p1,p2 in zip(pipe1,pipe2):\n\tif p1.GetType() == Plumbing.Pipe or p1.GetType() == Mechanical.Duct:\n\t\tptemp = p1\n\t\tp1 = p2\n\t\tp2 = ptemp\n\t\n\tconnectors = closest_connectors(p1,p2)\n\tstarttang = connectors[0].CoordinateSystem.BasisZ\n\tendtang = connectors[1].CoordinateSystem.BasisZ.Negate()\n\tif p1.GetType() == Plumbing.Pipe and p2.GetType() == Plumbing.Pipe or p1.GetType() == Mechanical.Duct and p2.GetType() == Mechanical.Duct:\n\t\tlevelid = p1.ReferenceLevel.Id\n\telse:\n\t\tlevelid = p1.LevelId\n\t\n\tline = Line.CreateUnbound(connectors[0].Origin,connectors[0].CoordinateSystem.BasisZ)\n\tpoint = line.Evaluate(10/304.8,False)\n\n\tpoints = List[XYZ]([point,connectors[1].Origin])\n\t\n\tif p2.GetType() == Mechanical.Duct:\n\t\tsystypeId = p2.get_Parameter(BuiltInParameter.RBS_DUCT_SYSTEM_TYPE_PARAM).AsElementId()\n\t\tflex = createFlexDuct(connectors[0],connectors[1],starttang,endtang,levelid,systypeId)\n\telse:\n\t\tsystypeId = p2.get_Parameter(BuiltInParameter.RBS_PIPING_SYSTEM_TYPE_PARAM).AsElementId()\n\t\tflex = createFlexPipe(connectors[0],connectors[1],starttang,endtang,levelid,systypeId)\n\n\tdoc.Regenerate()\n\n\t\n\tconns = closest_connectors(flex,p1)\n\tif conns[0].Shape == ConnectorProfileType.Round and conns[1].Shape == ConnectorProfileType.Round:\n\t\tif conns[0].Radius == conns[1].Radius:\n\t\t\tconns[0].ConnectTo(conns[1])\n\t\telse:\n\t\t\tdoc.Create.NewUnionFitting(conns[0],conns[1])\n\telif conns[0].Shape != ConnectorProfileType.Round and conns[1].Shape != ConnectorProfileType.Round:\n\t\tif conns[0].Width == conns[1].Width and conns[0].Height == conns[1].Height:\n\t\t\tconns[0].ConnectTo(conns[1])\n\t\telse:\n\t\t\tdoc.Create.NewUnionFitting(conns[0],conns[1])\n\telse:\n\t\tpass\n\t\t\n\tdoc.Regenerate()\n\tconns = closest_connectors(flex,p2)\n\tif conns[0].Shape == ConnectorProfileType.Round and conns[1].Shape == ConnectorProfileType.Round:\n\t\tif conns[0].Radius == conns[1].Radius:\n\t\t\tconns[0].ConnectTo(conns[1])\n\t\telse:\n\t\t\tdoc.Create.NewUnionFitting(conns[0],conns[1])\n\telif conns[0].Shape != ConnectorProfileType.Round and conns[1].Shape != ConnectorProfileType.Round:\n\t\tif conns[0].Width == conns[1].Width and conns[0].Height == conns[1].Height:\n\t\t\tconns[0].ConnectTo(conns[1])\n\t\telse:\n\t\t\tdoc.Create.NewUnionFitting(conns[0],conns[1])\n\telse:\n\t\tpass\n\t\n\tfittings.append(flex.ToDSType(False))\nTransactionManager.Instance.TransactionTaskDone()\n\n\t\t\t\n\nOUT = fittings",
+      "VariableInputPorts": true,
+      "Id": "d66fe6c3c86042c38008e14529ba1a89",
+      "Inputs": [
+        {
+          "Id": "ba067415e2af4bb0be6ed9c79793da3f",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "f3cf735c1482447588570e2fd8377aa0",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a5d29b45a150460c96594f4131c5b7a5",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "403e760967d54715bb3d9ffbd515c806",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "58a7cef8ef7246b1a0a88de64829ef97",
+      "End": "ba067415e2af4bb0be6ed9c79793da3f",
+      "Id": "33d4fefe1ef84e2ab6cb8fc22497fe6e"
+    },
+    {
+      "Start": "15429726c19f4debb9bab18482621cfa",
+      "End": "f3cf735c1482447588570e2fd8377aa0",
+      "Id": "9396d966474d490a84ca83f07a4681ca"
+    },
+    {
+      "Start": "ff77c443ce9c45a480fc39fc5912e3c0",
+      "End": "a5d29b45a150460c96594f4131c5b7a5",
+      "Id": "76a2a79d103f4a708192c7ad37c032e8"
+    },
+    {
+      "Start": "403e760967d54715bb3d9ffbd515c806",
+      "End": "d228731dab85428b929e1ec46d5209f8",
+      "Id": "6e149dcbfdbd489aba3d1d3cc615cda5"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "3205ebf73104418cae97a53ef4cd3832",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 64.0,
+        "Y": 200.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "ee6f9e8277a84befa7fab4add907125f",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 71.0,
+        "Y": 279.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "e5d4749b03024c698fbb80375a6e5477",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 62.0,
+        "Y": 418.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "9c53f782e13e4c5b8927350fc6000b1c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 505.0,
+        "Y": 263.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "d66fe6c3c86042c38008e14529ba1a89",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 290.0,
+        "Y": 234.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

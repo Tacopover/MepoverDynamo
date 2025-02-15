@@ -1,0 +1,165 @@
+{
+  "Uuid": "7f565e1d-35b5-4d0a-ac61-8086b086dd03",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.RoomsAndSpaces",
+  "Description": "Returns the spaces that are assigned to the Zone",
+  "Name": "Zone.Spaces",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#Many thanks to Konrad K Sobon for his awesome ProcessList function!\ndef Unwrap(item):\n\treturn UnwrapElement(item)\n\ndef ProcessList(_func, _list):\n    return map( lambda x: ProcessList(_func, x) if type(x)==list else _func(x), _list )\n\nif isinstance(IN[0], list):\n\tzones = ProcessList(Unwrap, IN[0])\nelse:\n\tzones = [Unwrap(IN[0])]\n\t\n\t\ndef getSpaces(zone):\n\ttry:\n\t\tspaces = zone.Spaces\n\t\treturn [x.ToDSType(True) for x in spaces]\n\texcept:\n\t\treturn None\n\n\t\t\t\n#Assign your output to the OUT variable.\n\nOUT = ProcessList(getSpaces, zones)",
+      "VariableInputPorts": true,
+      "Id": "14746f001ff44852b31b7377be688ab6",
+      "Inputs": [
+        {
+          "Id": "5d0860959c2948f5ad00ee66fed9d62c",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "3011f052d7134826a370e9a6646970d5",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "zone",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "68d2422c49e541e7a5bd5ab0a8c1101e",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "e7a78a8144a04e22963bdf82eae6f7d3",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Spaces",
+      "Id": "83cb12577e334f839ccddb9bfada31bf",
+      "Inputs": [
+        {
+          "Id": "d5d49cd09d674c65af3549822c240a2c",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "3011f052d7134826a370e9a6646970d5",
+      "End": "d5d49cd09d674c65af3549822c240a2c",
+      "Id": "9a1c9e19e762463aa3021d906e8bec72"
+    },
+    {
+      "Start": "e7a78a8144a04e22963bdf82eae6f7d3",
+      "End": "5d0860959c2948f5ad00ee66fed9d62c",
+      "Id": "fbb4054f3e5d44dfafe3e41e2b7a5a09"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python",
+        "Id": "14746f001ff44852b31b7377be688ab6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 351.0,
+        "Y": 266.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "68d2422c49e541e7a5bd5ab0a8c1101e",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 204.578098113077,
+        "Y": 261.332576665322
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "83cb12577e334f839ccddb9bfada31bf",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 545.0,
+        "Y": 268.0
+      }
+    ],
+    "Annotations": [],
+    "X": -47.5082472218675,
+    "Y": 11.7783345542906,
+    "Zoom": 1.02988563947099
+  }
+}

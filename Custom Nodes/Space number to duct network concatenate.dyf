@@ -1,0 +1,360 @@
+{
+  "Uuid": "5afcf4db-1561-493e-9e3b-958203697f8b",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.RoomsAndSpaces",
+  "Description": "This node will attempt to write the space numbers to connected duct objects in the network. Input AirTerminals need to be placed in spaces. ParameterName is the parameter to write the space number to. Numbers will be concatenated if they serve multiple spaces. Multiple Categories supported",
+  "Name": "Space number to duct network concatenate",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "\nimport clr\nimport math\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0], list):\n\telements = UnwrapElement(IN[0])\nelse:\n\telements = [UnwrapElement(IN[0])]\n\t\ndef getSize(x):\n\ttry:\n\t\tconns = x.ConnectorManager.Connectors\n\texcept:\n\t\tconns = x.MEPModel.ConnectorManager.Connectors\n\tmaxsize = 0\n\tfor c in conns:\n\t\tif c.Shape == ConnectorProfileType.Round:\n\t\t\tstartsize = c.Radius * 2\n\t\telif c.Shape == ConnectorProfileType.Invalid:\n\t\t\tcontinue\n\t\telse:\n\t\t\tarea = c.Width * c.Height\n\t\t\tstartsize = (math.sqrt(area/math.pi) * 2)\n\t\tif startsize > maxsize:\n\t\t\tmaxsize = startsize\n\treturn maxsize\n\t\nphaseId = elements[0].CreatedPhaseId\nphase = doc.GetElement(phaseId)\nname = IN[1]\nif isinstance(IN[2], list):\n\tcategory = UnwrapElement(IN[2])\nelse:\n\tcategory = [UnwrapElement(IN[2])]\n\t\nfactor = IN[3]\n\ncatIds = []\nfor c in category:\n\tcatIds.append(c.Id)\n\ndef checkParameter(param):\n\tfor p in param:\n\t\tinternal = p.Definition\n\t\tif internal.BuiltInParameter != BuiltInParameter.INVALID:\n\t\t\treturn p\n\treturn param[0]\n\n\ndef nextElement(elem,sys):\n\tsysname = next.get_Parameter(BuiltInParameter.RBS_SYSTEM_CLASSIFICATION_PARAM).AsString()\n\tfor s in sysname.split(\",\"):\n\t\tif s in sys.split(\",\"):\n\t\t\tbreak\n\telse:\n\t\treturn 4\n\tif \"Return Air\" in sysname:\n\t\tdirection = FlowDirectionType.In\n\telse:\n\t\tdirection = FlowDirectionType.Out\n\ttry:\n\t\tconnectors = elem.ConnectorManager.Connectors\n\t\tfor conn in connectors:\n\t\t\tif conn.Domain != Domain.DomainHvac:\n\t\t\t\tcontinue\n\t\t\telif conn.Direction == direction:\n\t\t\t\tcontinue\n\t\t\telse:\n\t\t\t\tendconn = conn\n\t\tfor c in endconn.AllRefs:\n\t\t\tif c.Owner.Id.Equals(elem.Id):\n\t\t\t\tcontinue\n\t\t\telif c.Owner.GetType() == Mechanical.MechanicalSystem:\n\t\t\t\treturn 0\n\t\t\telse:\n\t\t\t\tnewelem = c.Owner\n\t\treturn newelem\n\texcept AttributeError:\n\t\tconnectors = elem.MEPModel.ConnectorManager.Connectors\n\t\tif connectors.Size == 1:\n\t\t\tfor conn in connectors:\n\t\t\t\tif conn.Domain != Domain.DomainHvac:\n\t\t\t\t\tcontinue\n\t\t\t\tendconn = conn\n\t\t\tif endconn.AllRefs.Size == 1:\n\t\t\t\tfor c in endconn.AllRefs:\n\t\t\t\t\tif c.Owner.GetType() == Mechanical.MechanicalSystem:\n\t\t\t\t\t\treturn 1\n\t\t\tfor c in endconn.AllRefs:\n\t\t\t\tif c.Owner.Id.Equals(elem.Id):\n\t\t\t\t\tcontinue\n\t\t\t\telif c.Owner.GetType() == Mechanical.MechanicalSystem:\n\t\t\t\t\tcontinue\n\t\t\t\telse:\n\t\t\t\t\tnewelem = c.Owner\n\t\t\treturn newelem\n\t\telif connectors.Size == 2:\n\t\t\tfor conn in connectors:\n\t\t\t\tif conn.Domain != Domain.DomainHvac:\n\t\t\t\t\tcontinue\n\t\t\t\tif conn.Direction == direction:\n\t\t\t\t\tcontinue\n\t\t\t\telse:\n\t\t\t\t\tendconn = conn\n\t\t\tif endconn.AllRefs.Size == 1:\n\t\t\t\tfor c in endconn.AllRefs:\n\t\t\t\t\tif c.Owner.GetType() == Mechanical.MechanicalSystem:\n\t\t\t\t\t\treturn 2\n\t\t\tfor c in endconn.AllRefs:\n\t\t\t\tif c.Owner.Id.Equals(elem.Id):\n\t\t\t\t\tcontinue\n\t\t\t\telif c.Owner.GetType() == Mechanical.MechanicalSystem:\n\t\t\t\t\tcontinue\n\t\t\t\telse:\n\t\t\t\t\tnewelem = c.Owner\n\t\t\treturn newelem\n\t\telse:\n\t\t\tfor conn in connectors:\n\t\t\t\tif conn.Domain != Domain.DomainHvac:\n\t\t\t\t\tcontinue\n\t\t\t\tif conn.Direction != direction:\n\t\t\t\t\tendconn = conn\n\t\t\tif endconn.AllRefs.Size == 1:\n\t\t\t\tfor c in endconn.AllRefs:\n\t\t\t\t\tif c.Owner.GetType() == Mechanical.MechanicalSystem:\n\t\t\t\t\t\treturn 3\n\t\t\tfor c in endconn.AllRefs:\n\t\t\t\tif c.Owner.Id.Equals(elem.Id):\n\t\t\t\t\tcontinue\n\t\t\t\telif c.Owner.GetType() == Mechanical.MechanicalSystem:\n\t\t\t\t\tcontinue\n\t\t\t\telse:\n\t\t\t\t\tnewelem = c.Owner\n\t\t\treturn newelem\n\n\n\nlistout = []\nresult = []\nfor j,x in enumerate(elements):\n\tids = []\n\tspace = x.Space[phase]\n\tif space == None:\n\t\tlistout.append(\"ElementId \"+str(x.Id)+\" is not in a space\")\n\t\tcontinue\n\tspacenumber = space.Number\n\tsysclass = x.get_Parameter(BuiltInParameter.RBS_SYSTEM_CLASSIFICATION_PARAM).AsString()\n\tstartsize = getSize(x)\n\tnext = x\n\ti = 0\n\twhile True:\n\t\tif i > 1000:\n\t\t\tbreak\n\t\ttry:\n\t\t\tnext = nextElement(next,sysclass)\n\t\texcept:\n\t\t\tresult.append(\"error\")\n\t\t\tbreak\n\t\tif isinstance(next, int):\n\t\t\tresult.append(\"can't get next element\")\n\t\t\ti += 1\n\t\t\tbreak\n\t\ti += 1\n\t\tnextsize = getSize(next)\n\t\tif nextsize > startsize * factor:\n\t\t\tresult.append(\"size end\")\n\t\t\tbreak\n\t\tif next.Category.Id not in catIds:\n\t\t\ti += 1\n\t\t\tcontinue\n\t\tif next.Id in ids:\n\t\t\tresult.append(\"double element\")\n\t\t\tbreak\n\t\tp = next.GetParameters(name)\n\t\tif len(p) == 0:\n\t\t\tresult.append(\"no param\")\n\t\t\tbreak\n\t\telse:\n\t\t\tparam = checkParameter(p)\n\t\telem_num = param.AsString()\n\t\tif spacenumber in str(elem_num):\n\t\t\tcontinue\n\t\telse:\n\t\t\tif elem_num == \"\" or elem_num == None:\n\t\t\t\tnewvalue = spacenumber\n\t\t\telse:\n\t\t\t\tnewvalue = elem_num +\",\"+ spacenumber\n\t\t\tTransactionManager.Instance.EnsureInTransaction(doc)\n\t\t\tparam.Set(newvalue)\n\t\t\tTransactionManager.Instance.TransactionTaskDone()\n\t\t\tids.append(next.Id)\n\tlistout.append(x)\n\n#Assign your output to the OUT variable.\nOUT = listout, result",
+      "VariableInputPorts": true,
+      "Id": "66131311bdba441e93b39e8038b2de3b",
+      "Inputs": [
+        {
+          "Id": "dff460ad197042a3a48494d7c32e7bd2",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "07763c00de2f42f0b98bc0c8fd23dd80",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "3d40e47887634337b2ed73aeec237ffc",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "8fb1460e3fe34201971cdc6e7010e433",
+          "Name": "IN[3]",
+          "Description": "Input #3",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "8304d9a78a1e4d7a9fb70707971613c9",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Air_Terminals",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "82664288c3794bb1bb71984486fc3cd2",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "5ef4c011ef9e425b951e03f3b54cd258",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "ParameterName",
+        "TypeName": "string",
+        "TypeRank": 0,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "6ba477a6d97149e9ba5799ec81cc11d9",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "89dbe919851746f3a713009ba4f7478d",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "category",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "624c31135bb642c893667a020ba9a87f",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "c4529dd9b7df4297a3ca8c61e5ab2e27",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "SizeLimitFactor",
+        "TypeName": "int",
+        "TypeRank": 0,
+        "DefaultValue": "20",
+        "Description": ""
+      },
+      "Id": "daf050ccfca84a538ea76a239a5df557",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "eb4c5caca66d467d88afb4c9b18c400a",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Elements",
+      "Id": "95e5c59eb21a4bfa81322dba486d22ce",
+      "Inputs": [
+        {
+          "Id": "7051229eebca4aacaff5a348f4d815e8",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[0];",
+      "Id": "b888e4681f564a6ea1acce46ab0fc715",
+      "Inputs": [
+        {
+          "Id": "e6cbbe531dde4bcfa8a50ff2369fda15",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "fe2d0589bb484e0b98ceac4ae89db2a7",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "8304d9a78a1e4d7a9fb70707971613c9",
+      "End": "e6cbbe531dde4bcfa8a50ff2369fda15",
+      "Id": "02885db713964b9ea37be0d92fa33e7c"
+    },
+    {
+      "Start": "5ef4c011ef9e425b951e03f3b54cd258",
+      "End": "dff460ad197042a3a48494d7c32e7bd2",
+      "Id": "02e6f5d9254341c59e67fa79ab466f58"
+    },
+    {
+      "Start": "89dbe919851746f3a713009ba4f7478d",
+      "End": "07763c00de2f42f0b98bc0c8fd23dd80",
+      "Id": "5edc944432f54c61ad8c32881c23826b"
+    },
+    {
+      "Start": "c4529dd9b7df4297a3ca8c61e5ab2e27",
+      "End": "3d40e47887634337b2ed73aeec237ffc",
+      "Id": "7aee94d7163b40fe8aa1da76dafb8b59"
+    },
+    {
+      "Start": "eb4c5caca66d467d88afb4c9b18c400a",
+      "End": "8fb1460e3fe34201971cdc6e7010e433",
+      "Id": "4bdf7d448ee6484a82513291067f5799"
+    },
+    {
+      "Start": "fe2d0589bb484e0b98ceac4ae89db2a7",
+      "End": "7051229eebca4aacaff5a348f4d815e8",
+      "Id": "b11c1d903abb4f02aec08b942cc4d417"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "66131311bdba441e93b39e8038b2de3b",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 301.0,
+        "Y": 221.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "82664288c3794bb1bb71984486fc3cd2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 29.0,
+        "Y": 198.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "6ba477a6d97149e9ba5799ec81cc11d9",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -53.0,
+        "Y": 276.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "624c31135bb642c893667a020ba9a87f",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -27.0,
+        "Y": 354.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "daf050ccfca84a538ea76a239a5df557",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -79.0,
+        "Y": 447.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "95e5c59eb21a4bfa81322dba486d22ce",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 595.0,
+        "Y": 220.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "b888e4681f564a6ea1acce46ab0fc715",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 472.0,
+        "Y": 224.0
+      }
+    ],
+    "Annotations": [],
+    "X": 129.0,
+    "Y": -52.0,
+    "Zoom": 1.0
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "Uuid": "289d3ae4-7d47-40ab-aea2-1286787bd41a",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.RoomsAndSpaces",
+  "Description": "This node will attempt to create spaces automatically for every level",
+  "Name": "Spaces place automatically for all levels",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Phase",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "055eb3ed59b44c91b373f450dc61491a",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "419ab48302c745ed82823f7b8729aeb3",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Spaces",
+      "Id": "fac2827696ce47f1956e2095ef12b1f2",
+      "Inputs": [
+        {
+          "Id": "32a5ae30498747c9adcf5c6905c61a99",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\ncollector = FilteredElementCollector(doc)\nlevels = collector.OfClass(Level).ToElements()\n\nphase = UnwrapElement(IN[0])\nlimitoffset = 8\nlistout = []\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor j,level in enumerate(levels):\n\ttry:\n\t\tplanTopology = doc.get_PlanTopology(level)\n\t\trooms = []\n\t\t\n\t\tfor i,plancircuit in enumerate(planTopology.Circuits):\n\t\t\tuv = plancircuit.GetPointInside()\n\t\t\tpoint = XYZ(uv.U,uv.V,level.Elevation)\n\t\t\tif doc.GetSpaceAtPoint(point,phase) != None:\n\t\t\t\tcontinue\n\t#\t\tTransactionManager.Instance.EnsureInTransaction(doc)\n\t\t\ttry:\n\t\t\t\troom = doc.Create.NewSpace(level,phase,uv)\n\t\t\t\troom.Name = \"Name\" + str(i)\n\t\t\t\troom.Number = str(j) + \".\" + str(i)\n\t\t\t\troom.LimitOffset = limitoffset\n\t\t\t\trooms.append(room)\n\t\t\texcept:\n\t\t\t\tlistout.append(\"level2\")\n\t\t\t\tcontinue\n\t#\t\tTransactionManager.Instance.TransactionTaskDone()\n\t\tlistout.append(rooms)\n\texcept:\n\t\tcontinue\nTransactionManager.Instance.TransactionTaskDone()\n\n\nOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "49226d3aa28e44f483cd2042930ccf0a",
+      "Inputs": [
+        {
+          "Id": "95e2a0a5108a440ab8fb03285701d360",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "abba2cc6f14f4bb69564214dbf2adcd9",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "419ab48302c745ed82823f7b8729aeb3",
+      "End": "95e2a0a5108a440ab8fb03285701d360",
+      "Id": "5450109cc8e241dbb144754d7587ea0e"
+    },
+    {
+      "Start": "abba2cc6f14f4bb69564214dbf2adcd9",
+      "End": "32a5ae30498747c9adcf5c6905c61a99",
+      "Id": "488e59b72f6745219a119e22a91edb4a"
+    }
+  ],
+  "Dependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.0.3.8810",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "055eb3ed59b44c91b373f450dc61491a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 198.0,
+        "Y": 305.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "fac2827696ce47f1956e2095ef12b1f2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 618.0,
+        "Y": 311.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "49226d3aa28e44f483cd2042930ccf0a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 400.0,
+        "Y": 299.5
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

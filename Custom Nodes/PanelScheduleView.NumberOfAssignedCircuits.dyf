@@ -1,0 +1,165 @@
+{
+  "Uuid": "4267cdc7-f586-493e-a592-c4442c6a886c",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.PanelSchedule",
+  "Description": "This will return the number of assigned circuits on a panelschedule. Spares and spaces also count as an assigned circuit.",
+  "Name": "PanelScheduleView.NumberOfAssignedCircuits",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "PanelScheduleView",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "cd6d66fd00164a0dbac0e9e9e6e2302a",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "baf63492674742de8259ea48d6ef5556",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#Many thanks to Konrad K Sobon for his awesome ProcessList function!\ndef Unwrap(item):\n\treturn UnwrapElement(item)\n\ndef ProcessList(_func, _list):\n    return map( lambda x: ProcessList(_func, x) if type(x)==list else _func(x), _list )\n\nif isinstance(IN[0], list):\n\tpanelschedule = ProcessList(Unwrap, IN[0])\nelse:\n\tpanelschedule = [Unwrap(IN[0])]\n\t\n\t\ndef GetNumber(panelschedule):\n\ti = 0\n\tnumber = 0\n\tfoundcircuit = False\n\twhile True:\n\t\tif panelschedule.GetTableData().GetNumberOfCircuitRows() < i:\n\t\t\tbreak\n\t\tcircuit = panelschedule.GetCircuitByCell(i,0)\n\t\tif circuit == None and foundcircuit == True:\n\t\t\tbreak\n\t\tif circuit == None and foundcircuit == False:\n\t\t\ti += 1\n\t\t\tcontinue\n\t\tif circuit.GetType() == Electrical.ElectricalSystem and foundcircuit == False:\n\t\t\tfoundcircuit = True\n\t\t\tnumber += 1\n\t\t\ti += 1\n\t\t\tcontinue\n\t\tif circuit.GetType() != Electrical.ElectricalSystem:\n\t\t\tbreak\n\t\tnumber += 1\n\t\ti += 1\n\t\tif number > 1000:\n\t\t\tbreak\n\treturn number\n\n\n\nOUT = ProcessList(GetNumber, panelschedule)",
+      "VariableInputPorts": true,
+      "Id": "ea9b18219b14413e9cd6d4e3b4c3a2f6",
+      "Inputs": [
+        {
+          "Id": "0d117119cf8647a3895ef7cb66c252e2",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "55d72cbd19da4f779bb3e06e745c549b",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Number",
+      "Id": "e7ffde1080f84dddb279ed527f43bbfc",
+      "Inputs": [
+        {
+          "Id": "ca8a071a1ad74beb9418ea344c246fd2",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "baf63492674742de8259ea48d6ef5556",
+      "End": "0d117119cf8647a3895ef7cb66c252e2",
+      "Id": "81c5618095ec4c2fa7ebfb1cd8010bd1"
+    },
+    {
+      "Start": "55d72cbd19da4f779bb3e06e745c549b",
+      "End": "ca8a071a1ad74beb9418ea344c246fd2",
+      "Id": "d98ef548c7954154a6519263374ea03e"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "cd6d66fd00164a0dbac0e9e9e6e2302a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 254.0,
+        "Y": 235.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "ea9b18219b14413e9cd6d4e3b4c3a2f6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 513.0,
+        "Y": 234.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "e7ffde1080f84dddb279ed527f43bbfc",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 721.0,
+        "Y": 237.0
+      }
+    ],
+    "Annotations": [],
+    "X": -147.0,
+    "Y": -11.0,
+    "Zoom": 1.0
+  }
+}

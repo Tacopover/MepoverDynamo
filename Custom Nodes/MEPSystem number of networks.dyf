@@ -1,0 +1,165 @@
+{
+  "Uuid": "b7d199c5-6297-4ebb-9e9b-11c617d1167d",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Returns the number of physical networks in the system",
+  "Name": "MEPSystem number of networks",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nif isinstance(IN[0], list):\n\tsystems = UnwrapElement(IN[0])\n\ttoggle = 0\nelse:\n\tsystems = [UnwrapElement(IN[0])]\n\ttoggle = 1\n\t\nlistout = []\nfor sys in systems:\n\tcount = sys.GetPhysicalNetworksNumber()\n\tlistout.append(count)\n\nif toggle:\n\tOUT = listout[0]\nelse:\n\tOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "ddddb2fbfc784583a6bcb49f255269a3",
+      "Inputs": [
+        {
+          "Id": "038c0d168e17455db51621ca0467bdff",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "90a1e8d57ab043dea23ec7dd37ee4c1f",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "System",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "012ed2aa15984f1284ec1c820d238b1e",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "7e265c7e91094b96a057cb0804488aa9",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Number",
+      "Id": "4c3977ba8689446bbaabb9e5d001ff64",
+      "Inputs": [
+        {
+          "Id": "3eb59a0b8011453d8b3ed94375ece5a8",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "90a1e8d57ab043dea23ec7dd37ee4c1f",
+      "End": "3eb59a0b8011453d8b3ed94375ece5a8",
+      "Id": "7df4660dd89440189d7d2fdefd27a20a"
+    },
+    {
+      "Start": "7e265c7e91094b96a057cb0804488aa9",
+      "End": "038c0d168e17455db51621ca0467bdff",
+      "Id": "b292ece6ab5c49f99d3261c7b6ec0578"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python: physical network number",
+        "Id": "ddddb2fbfc784583a6bcb49f255269a3",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 487.0,
+        "Y": 248.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "012ed2aa15984f1284ec1c820d238b1e",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 160.0,
+        "Y": 277.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "4c3977ba8689446bbaabb9e5d001ff64",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 808.0,
+        "Y": 247.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

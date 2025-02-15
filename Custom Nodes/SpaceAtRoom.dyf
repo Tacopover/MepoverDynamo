@@ -1,0 +1,341 @@
+{
+  "Uuid": "b8383dd0-02f3-4f24-a287-b15274f9c05e",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.RoomsAndSpaces",
+  "Description": "Input a (linked) room and this node will create a space in the selected phase at the same place and level as the room.",
+  "Name": "SpaceAtRoom",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nimport math\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nfrom System.Collections.Generic import List\n\n\nphase = UnwrapElement(IN[1])\n\ncollector = FilteredElementCollector(doc)\nlevels = collector.OfClass(Level).ToElements()\n\t\nleveldict2 = {}\nfor level in levels:\n\tleveldict2[math.ceil((level.Elevation+0.5)*100)/100] = level\n\t\ncollector2 = FilteredElementCollector(doc)\nspaces = collector2.OfCategory(BuiltInCategory.OST_MEPSpaces).ToElements()\n\nif isinstance(IN[0], list):\n\trooms = UnwrapElement(IN[0])\nelse:\n\trooms = [UnwrapElement(IN[0])]\n\nspacedict = {}\nfor x in spaces:\n\tspacedict[x.Number] = x\n\nroomdict = {}\nfor x in rooms:\n\tif x.Location != None:\n\t\troomdict[x.Number] = x\n\n\nspacenumbers = [x.Number for x in spaces]\nroomnumbers = [x.Number for x in rooms if x.Location != None]\nspaceset = set(spacenumbers)\nroomset = set(roomnumbers)\n\nnewrooms = roomset.difference(spaceset)\n\nnewspaces = []\nnewrooms2 = []\nfailed = []\n\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor x in newrooms:\n\troom = roomdict[x]\n\troomelev = math.ceil((room.Level.Elevation+0.5)*100)/100\n\ttry:\n\t\tlevel = leveldict2[roomelev]\n\texcept:\n\t\tfailed.append(\"could not find a matching level for room: \"+ x)\n\t\tcontinue\n\t\n\ttry:\n\t\tnewrooms2.append(room)\n\t\tloc = room.Location.Point\n\t\tnewspace = doc.Create.NewSpace(level,phase,UV(loc.X,loc.Y))\n\t\tnewspaces.append(newspace)\n\texcept:\n\t\tfailed.append(\"failed new space creation for room: \"+ x)\nTransactionManager.Instance.TransactionTaskDone()\n\n\nnewspaces2 = []\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor space,room in zip(newspaces,newrooms2):\n\ttry:\n\t\tspace.Number = room.Number\n\texcept:\n\t\tfailed.append(\"failed to set space number for space: \" + space.Number)\n\t\n\ttry:\n\t\tspace.LimitOffset = room.LimitOffset\n\texcept:\n\t\tfailed.append(\"failed to set LimitOffset for space: \" + space.Number)\n\n\tnewspaces2.append(space.ToDSType(False))\nTransactionManager.Instance.TransactionTaskDone()\n\n#Assign your output to the OUT variable.\nOUT = newspaces2,failed",
+      "VariableInputPorts": true,
+      "Id": "37931fc9a72e42079300e802c905818c",
+      "Inputs": [
+        {
+          "Id": "8361ae133b7c4052a53befbd73a2f090",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "ac54908d13144c36a423d2cacb1ab7a9",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "bebf0b8d5e314434b4c28b9407fdc610",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Rooms",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "6939190e6dbd4fecb0b4fc8fe4bfdfe4",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "6875a0877c834d0c9a5d823ad0b208e7",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Phase",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "973779e3d106444395168bf856e68f29",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "a4cfbda887324cf69d80996d6987ac08",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Spaces",
+      "Id": "42fd1ab7402845ddb7206b6c61cb0513",
+      "Inputs": [
+        {
+          "Id": "e5c78108fc3b4e3497b2fc568c87b50d",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[0];",
+      "Id": "272f429499a6490594f56c4e3f488db3",
+      "Inputs": [
+        {
+          "Id": "a8ce30179d104dd29d702d7175d917d4",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "5abbd984dfe749809bf96bec2e8f8519",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[1];",
+      "Id": "da54925ab4124a36a4c2246d07fc0787",
+      "Inputs": [
+        {
+          "Id": "899a0519f2cb4393be2b7cebddd584ef",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "e622893059ff4869914b5e461ff95677",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Failed",
+      "Id": "d02e1dc7302b4b93856ae611e52d55f3",
+      "Inputs": [
+        {
+          "Id": "42a8016338bd4610a02968e542271de6",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "bebf0b8d5e314434b4c28b9407fdc610",
+      "End": "a8ce30179d104dd29d702d7175d917d4",
+      "Id": "61f2f7c7baed4eb896a059f066b79e5b"
+    },
+    {
+      "Start": "bebf0b8d5e314434b4c28b9407fdc610",
+      "End": "899a0519f2cb4393be2b7cebddd584ef",
+      "Id": "65cf2fbcb4dc4988a39e4669c950cb40"
+    },
+    {
+      "Start": "6875a0877c834d0c9a5d823ad0b208e7",
+      "End": "8361ae133b7c4052a53befbd73a2f090",
+      "Id": "cddb2e1c3a874b688c7939db34a5380e"
+    },
+    {
+      "Start": "a4cfbda887324cf69d80996d6987ac08",
+      "End": "ac54908d13144c36a423d2cacb1ab7a9",
+      "Id": "1a9e2e6acbb24cfabb0a944ad36c872b"
+    },
+    {
+      "Start": "5abbd984dfe749809bf96bec2e8f8519",
+      "End": "e5c78108fc3b4e3497b2fc568c87b50d",
+      "Id": "a56d9a3b281e4d0e85629af98c704dd9"
+    },
+    {
+      "Start": "e622893059ff4869914b5e461ff95677",
+      "End": "42a8016338bd4610a02968e542271de6",
+      "Id": "e794c387d6bc4a0a97044437d0f22044"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "37931fc9a72e42079300e802c905818c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 570.0,
+        "Y": 297.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "6939190e6dbd4fecb0b4fc8fe4bfdfe4",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 395.0,
+        "Y": 277.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "973779e3d106444395168bf856e68f29",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 354.0,
+        "Y": 373.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "42fd1ab7402845ddb7206b6c61cb0513",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 920.330015832465,
+        "Y": 278.021959956472
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "272f429499a6490594f56c4e3f488db3",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 761.439815614827,
+        "Y": 283.823909357968
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "da54925ab4124a36a4c2246d07fc0787",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 760.098819804126,
+        "Y": 383.032939934709
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "d02e1dc7302b4b93856ae611e52d55f3",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 923.967060065292,
+        "Y": 376.76942045704
+      }
+    ],
+    "Annotations": [],
+    "X": -251.98228125,
+    "Y": -131.233725,
+    "Zoom": 1.33823125
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "Uuid": "4d4d8b43-ed79-45ad-8c82-aa6353b2b05f",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Returns the fittings, ducts accessories and terminals connected to the given duct, cable tray, pipe or conduit. Also return air terminals on Ducts",
+  "Name": "MEP Curve connected fittings",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nclr.AddReference('ProtoGeometry')\nfrom Autodesk.DesignScript.Geometry import *\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0], list):\n\tcurves = UnwrapElement(IN[0])\nelse:\n\tcurves = [UnwrapElement(IN[0])]\n\nrefs = []\n\nfor curve in curves:\n\tconnMan = curve.ConnectorManager\n\tfittings = []\n\tfor conn in connMan.Connectors:\n\t\tif conn.IsConnected:\n\t\t\tfor lc in conn.AllRefs:\n\t\t\t\tif connMan.Owner.Id !=  lc.Owner.Id:\n\t\t\t\t\tfittings.append(lc.Owner)\n\trefs.append(fittings)\n\n#Assign your output to the OUT variable.\nOUT = refs",
+      "VariableInputPorts": true,
+      "Id": "8b91ed13525344be86b09accb495acab",
+      "Inputs": [
+        {
+          "Id": "4e2446e493634a5d8ee02b3ceac1da12",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "284a2c05ec9e4a1fad74168f1be48595",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "MEPCurves",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "7d6a2199b3824fa99797a170310dc248",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "fa577375fd9746f6b2bdf0b99e1e9aac",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Fittings",
+      "Id": "256ef4b22e084cb593cb66b36ebf35cb",
+      "Inputs": [
+        {
+          "Id": "c144b6f0438b4be5bbd19dd49f65410c",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "284a2c05ec9e4a1fad74168f1be48595",
+      "End": "c144b6f0438b4be5bbd19dd49f65410c",
+      "Id": "8ab54bce8f164ed7be75f9392ecbbf4c"
+    },
+    {
+      "Start": "fa577375fd9746f6b2bdf0b99e1e9aac",
+      "End": "4e2446e493634a5d8ee02b3ceac1da12",
+      "Id": "37e1af9a71d147eb879aaa6fa7f1125b"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "8b91ed13525344be86b09accb495acab",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 247.0,
+        "Y": 245.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "7d6a2199b3824fa99797a170310dc248",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 40.0,
+        "Y": 224.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "256ef4b22e084cb593cb66b36ebf35cb",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 467.0,
+        "Y": 235.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "Uuid": "d4b6ac73-2a7e-40fd-9082-3560ac9dd731",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Creates a tee by a main curve and a branch MEP curve (duct, pipe, conduit, cable tray). Only works with perpendicular brand curves",
+  "Name": "Tee.By2MEPCurves",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nimport math\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\t\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nfrom System.Collections.Generic import List\n\nif isinstance(IN[0],list):\n\tcurves1 = UnwrapElement(IN[0])\nelse:\n\tcurves1 = [UnwrapElement(IN[0])]\nif isinstance(IN[1],list):\n\tcurves2 = UnwrapElement(IN[1])\nelse:\n\tcurves2 = [UnwrapElement(IN[1])]\n\t\n\t\ndef closest_connectors(pipe1, pipe2,pipe3):\n\tconn1 = pipe1.ConnectorManager.Connectors\n\tconn2 = pipe2.ConnectorManager.Connectors\n\tconn3 = pipe3.ConnectorManager.Connectors\n\t\n\tdist1 = 100000000\n\tdist2 = 100000000\n\tconnset = []\n\tfor c in conn1:\n\t\tfor d in conn3:\n\t\t\tconndist = c.Origin.DistanceTo(d.Origin)\n\t\t\tif conndist < dist1:\n\t\t\t\tdist1 = conndist\n\t\t\t\tc1 = c\n\t\t\t\td1 = d\n\t\tfor e in conn2:\n\t\t\tconndist = c.Origin.DistanceTo(e.Origin)\n\t\t\tif conndist < dist2:\n\t\t\t\tdist2 = conndist\n\t\t\t\te1 = e\n\t\tconnset = [c1,d1,e1]\n\treturn connset\n\t\n\ndef newTee(conn1,conn2,conn3):\n\tfitting = doc.Create.NewTeeFitting(conn1,conn2,conn3)\n\treturn fitting\n\nfittings = []\n\t\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor curve1,curve2 in zip(curves1,curves2):\n\ttry:\n\t\ttry:\n\t\t\twidth = curve2.Diameter\n\t\texcept:\n\t\t\twidth = curve2.Width\n\t\t#get startpoint and endpoint of curve1\n\t\tcurve1Line = curve1.Location.Curve\n\t\tstartpoint = curve1Line.GetEndPoint(0)\n\t\tendpoint = curve1Line.GetEndPoint(1)\n\t\t\n\t\t#get point perpendicular of curve2\n\t\tcurve2Line = curve2.Location.Curve\n\t\tcurve2start = curve2Line.GetEndPoint(0)\n\t\tpointmid = curve1Line.Project(curve2start).XYZPoint\n\t\tlen1 = startpoint.DistanceTo(pointmid)\n\t\tlen2 = len1 - width/2\n\t\tlen3 = len1 + width/2\n\t\t\n\t\tmidstart = curve1Line.Evaluate((len2/curve1Line.Length),True)\n\t\tmidend = curve1Line.Evaluate((len3/curve1Line.Length),True)\n\t\t\n\t\t#change startpoint and endpoints so the longest piece of mepcurve is retained\n\t\ttoggle = False\n\t\tif startpoint.DistanceTo(pointmid) < endpoint.DistanceTo(pointmid):\n\t\t\ttoggle = True\n\t\t\ttemppoint = startpoint\n\t\t\tstartpoint = endpoint\n\t\t\tendpoint = temppoint\n\t\t\t\n\t\t\ttempmid = midstart\n\t\t\tmidstart = midend\n\t\t\tmidend = tempmid\n\t\t\n\t\t#disconnect curve1:\n\t\tconnectors1 = curve1.ConnectorManager.Connectors\n\t\tfor conn in connectors1:\n\t\t\tif conn.Origin.IsAlmostEqualTo(startpoint):\n\t\t\t\tstartconn = conn\n\t\t\telif conn.Origin.IsAlmostEqualTo(endpoint):\n\t\t\t\tendconn = conn\n\t\t\n\t\totherfitting = None\n\t\tfor conn in endconn.AllRefs:\n\t\t\tif conn.IsConnectedTo(endconn):\n\t\t\t\tif conn.Owner.GetType() == FamilyInstance:\n\t\t\t\t\totherfitting = conn.Owner\n\t\t\t\tendconn.DisconnectFrom(conn)\n\t\t\t\t\n\t\t#shorten existing curve and copy it\n\t\tif toggle:\n\t\t\tcurve1.Location.Curve = Line.CreateBound(midstart,startpoint)\n\t\telse:\n\t\t\tcurve1.Location.Curve = Line.CreateBound(startpoint,midstart)\n\t\tdoc.Regenerate()\n\t\tOffsetZ = (midstart.Z - endpoint.Z)*-1\n\t\tOffsetX = (midstart.X - endpoint.X)*-1\n\t\tOffsetY = (midstart.Y - endpoint.Y)*-1\n\t\tdirection = XYZ(OffsetX,OffsetY,OffsetZ)\n\t\tnewelem = ElementTransformUtils.CopyElement(doc,curve1.Id,direction)\n\t\tcurve3 = doc.GetElement(newelem[0])\n\t\tdoc.Regenerate()\n\t\t\n\t\t#shorten new curve\n\t\tcurve3.Location.Curve = Line.CreateBound(endpoint,midend)\n\t\tdoc.Regenerate()\n\t\t\n\t\tconnectors = closest_connectors(curve1,curve2,curve3)\n\t#\ttry:\n\t\tfitting = newTee(connectors[0],connectors[1],connectors[2])\n\t\tfittings.append(fitting.ToDSType(False))\n\t\t\n\t\tif otherfitting != None:\n\t\t\tconnectors3 = curve3.ConnectorManager.Connectors\n\t\t\tfor conn in connectors3:\n\t\t\t\tfor conn2 in otherfitting.MEPModel.ConnectorManager.Connectors:\n\t\t\t\t\tif conn.Origin.IsAlmostEqualTo(conn2.Origin):\n\t\t\t\t\t\tconn.ConnectTo(conn2)\n\t\t\t\t\t\tbreak\n\texcept:\n\t\tfittings.append(None)\n\n\t\nTransactionManager.Instance.TransactionTaskDone()\n\n\n\n#Assign your output to the OUT variable.\nOUT = fittings",
+      "VariableInputPorts": true,
+      "Id": "8f7a9e6d113b43a6ab7ffdb6c6361c96",
+      "Inputs": [
+        {
+          "Id": "d215269e7e994fcfa61d01b915898e2d",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "39abfc1c65be41d7b13b26eb6a947c7f",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "7e9a0ba8c8594048ba6025ca2d59fd0b",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Main_MEPCurve",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "5abad73a6e684703a69a9d48e692b940",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "f7dd715c94e74e67bfc9ff9a8013dfde",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Branch_MEPCurve",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "03252ad23dec4479b89a80ec7d9e6853",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "61b866202f4d436faec1a3b26e36b757",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Tee",
+      "Id": "f01bc70f12624914a901b3af11901b8e",
+      "Inputs": [
+        {
+          "Id": "88c99058be5a470db6ca9435464871c8",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "7e9a0ba8c8594048ba6025ca2d59fd0b",
+      "End": "88c99058be5a470db6ca9435464871c8",
+      "Id": "2646e3fb0ac54ad58632b1277231f7ad"
+    },
+    {
+      "Start": "f7dd715c94e74e67bfc9ff9a8013dfde",
+      "End": "d215269e7e994fcfa61d01b915898e2d",
+      "Id": "e0e50c4c52a5407fa86cc37b6ae591fc"
+    },
+    {
+      "Start": "61b866202f4d436faec1a3b26e36b757",
+      "End": "39abfc1c65be41d7b13b26eb6a947c7f",
+      "Id": "b45632570da941d08acdbc9916a629d2"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "8f7a9e6d113b43a6ab7ffdb6c6361c96",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 361.0,
+        "Y": 324.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "5abad73a6e684703a69a9d48e692b940",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 148.0,
+        "Y": 277.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "03252ad23dec4479b89a80ec7d9e6853",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 166.0,
+        "Y": 393.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "f01bc70f12624914a901b3af11901b8e",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 548.0,
+        "Y": 319.0
+      }
+    ],
+    "Annotations": [],
+    "X": -143.616372947398,
+    "Y": 24.7789697101662,
+    "Zoom": 1.07925372895183
+  }
+}

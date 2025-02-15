@@ -1,0 +1,165 @@
+{
+  "Uuid": "bc30048b-565d-4c7c-bc2c-a68fd51fb2a3",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "This node will attempt to add a cap onto an open pipe. The cap type needs to be set in the pipe's routing preferences.",
+  "Name": "Pipe.AddCapOntoOpenEnd",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#Many thanks to Konrad K Sobon for his awesome ProcessList function!\ndef Unwrap(item):\n\treturn UnwrapElement(item)\n\ndef ProcessList(_func, _list):\n    return map( lambda x: ProcessList(_func, x) if type(x)==list else _func(x), _list )\n\nif isinstance(IN[0], list):\n\tpipes = ProcessList(Unwrap, IN[0])\nelse:\n\tpipes = [Unwrap(IN[0])]\n\t\ninvalidId = ElementId(-1)\n\ndef AddPipeCap(pipe):\n\tresult = False\n\ttry:\n\t\tTransactionManager.Instance.EnsureInTransaction(doc)\n\t\tPlumbing.PlumbingUtils.PlaceCapOnOpenEnds(doc,pipe.Id, invalidId)\n\t\tTransactionManager.Instance.TransactionTaskDone()\n\t\tresult = True\n\texcept:\n\t\tpass\n\treturn result\n\n\t\t\t\n#Assign your output to the OUT variable.\n\nOUT = ProcessList(AddPipeCap, pipes)",
+      "VariableInputPorts": true,
+      "Id": "64e8b5d70a07424d9b0ba5ad3dd4a72b",
+      "Inputs": [
+        {
+          "Id": "8801c14e32a54ba39d46d3fb85f337b5",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "3432dcd9b7834ca2a9e4884deba9f61e",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Pipe",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "447fd25af6de415cb2bde612f4083e63",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "82138d0ffdfe4f7f821f44522bd3e90f",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Succes:bool",
+      "Id": "df3f3a153cb14fad9e1088ffbbad34e9",
+      "Inputs": [
+        {
+          "Id": "eead47c6d03a4147baf28cc8cea9e571",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "3432dcd9b7834ca2a9e4884deba9f61e",
+      "End": "eead47c6d03a4147baf28cc8cea9e571",
+      "Id": "36610ff8b4a24fac9e601875fa9d4e48"
+    },
+    {
+      "Start": "82138d0ffdfe4f7f821f44522bd3e90f",
+      "End": "8801c14e32a54ba39d46d3fb85f337b5",
+      "Id": "b9a2b3343ba54487818f57bd32590d01"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python",
+        "Id": "64e8b5d70a07424d9b0ba5ad3dd4a72b",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 446.0,
+        "Y": 327.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "447fd25af6de415cb2bde612f4083e63",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 193.0,
+        "Y": 353.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "df3f3a153cb14fad9e1088ffbbad34e9",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 688.0,
+        "Y": 343.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "Uuid": "3ac9c8c9-e8d3-4c6d-9cae-4f336ccee358",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Add elements to a Duct or Pipe system",
+  "Name": "MEPSystem.AddToSystem",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n\ndef AddToSystem(sys,terminals):\n\tresult = []\n\tsystype = sys.SystemType\n\tif systype.GetType() == Mechanical.DuctSystemType:\n\t\tTransactionManager.Instance.EnsureInTransaction(doc)\n\t\tif hasattr(terminals, \"__iter__\"):\n\t\t\tfor terminal in terminals:\n\t\t\t\ttry:\n\t\t\t\t\tconnectors = terminal.MEPModel.ConnectorManager.Connectors\n\t\t\t\t\tfor conn in connectors:\n\t\t\t\t\t\ttry:\n\t\t\t\t\t\t\tif conn.DuctSystemType == systype:\n\t\t\t\t\t\t\t\tconnset = ConnectorSet()\n\t\t\t\t\t\t\t\tconnset.Insert(conn)\n\t\t\t\t\t\t\t\tsys.Add(connset)\n\t\t\t\t\t\t\t\tresult.append(terminal)\n\t\t\t\t\t\texcept:\n\t\t\t\t\t\t\tpass\n\t\t\t\texcept:\n\t\t\t\t\tpass\n\t\telse:\n\t\t\ttry:\n\t\t\t\tconnectors = terminal.MEPModel.ConnectorManager.Connectors\n\t\t\t\tfor conn in connectors:\n\t\t\t\t\ttry:\n\t\t\t\t\t\tif conn.DuctSystemType == systype:\n\t\t\t\t\t\t\tconnset = ConnectorSet()\n\t\t\t\t\t\t\tconnset.Insert(conn)\n\t\t\t\t\t\t\tsys.Add(connset)\n\t\t\t\t\t\t\tresult.append(terminal)\n\t\t\t\t\texcept:\n\t\t\t\t\t\tpass\n\t\t\texcept:\n\t\t\t\tpass\n\t\tTransactionManager.Instance.TransactionTaskDone()\n\telse:\n\t\tTransactionManager.Instance.EnsureInTransaction(doc)\n\t\tif hasattr(terminals, \"__iter__\"):\n\t\t\tfor terminal in terminals:\n\t\t\t\ttry:\n\t\t\t\t\tconnectors = terminal.MEPModel.ConnectorManager.Connectors\n\t\t\t\t\tfor conn in connectors:\n\t\t\t\t\t\ttry:\n\t\t\t\t\t\t\tif conn.PipeSystemType == systype:\n\t\t\t\t\t\t\t\tconnset = ConnectorSet()\n\t\t\t\t\t\t\t\tconnset.Insert(conn)\n\t\t\t\t\t\t\t\tsys.Add(connset)\n\t\t\t\t\t\t\t\tresult.append(terminal)\n\t\t\t\t\t\texcept:\n\t\t\t\t\t\t\tpass\n\t\t\t\texcept:\n\t\t\t\t\tpass\n\t\telse:\n\t\t\ttry:\n\t\t\t\tconnectors = terminal.MEPModel.ConnectorManager.Connectors\n\t\t\t\tfor conn in connectors:\n\t\t\t\t\ttry:\n\t\t\t\t\t\tif conn.PipeSystemType == systype:\n\t\t\t\t\t\t\tconnset = ConnectorSet()\n\t\t\t\t\t\t\tconnset.Insert(conn)\n\t\t\t\t\t\t\tsys.Add(connset)\n\t\t\t\t\t\t\tresult.append(terminal)\n\t\t\t\t\texcept:\n\t\t\t\t\t\tpass\n\t\t\texcept:\n\t\t\t\tpass\n\t\tTransactionManager.Instance.TransactionTaskDone()\n\treturn result\n\nlistout = []\nif isinstance(IN[0], list):\n\tfor i,sys in enumerate(UnwrapElement(IN[0])):\n\t\tlistout.append(AddToSystem(sys,UnwrapElement(IN[1])[i]))\nelse:\n\tlistout.append(AddToSystem(UnwrapElement(IN[0]),UnwrapElement(IN[1])))\n\nOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "dc868cef32a145cf84e76ff58d890cc5",
+      "Inputs": [
+        {
+          "Id": "78261dc40c2c4ca0bc5bf2712f715c61",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "d5bbb47679884a13878461ba27bc69be",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "55394902110c4655a512fe19f7bdf121",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "System",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "d6d352b921034881beab4aa7641ed822",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "c6f2fbe8d373416da99d2cfc46c0fad9",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Elements",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "8a3ebe7e3eb44f21a124f5be3db03759",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "43c0396146b94845926f3bb490653b28",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Result",
+      "Id": "15863cf4b19146b09e631500e665ee46",
+      "Inputs": [
+        {
+          "Id": "b9dfc08e38f34f8982017b32d29e73dc",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "55394902110c4655a512fe19f7bdf121",
+      "End": "b9dfc08e38f34f8982017b32d29e73dc",
+      "Id": "a1d075bcc1e448bea7f6f896edface2e"
+    },
+    {
+      "Start": "c6f2fbe8d373416da99d2cfc46c0fad9",
+      "End": "78261dc40c2c4ca0bc5bf2712f715c61",
+      "Id": "11c8c269577d46669f68303da9ff0028"
+    },
+    {
+      "Start": "43c0396146b94845926f3bb490653b28",
+      "End": "d5bbb47679884a13878461ba27bc69be",
+      "Id": "317123745d4b4007bde3cbb815f15f4a"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python: AddToSystem",
+        "Id": "dc868cef32a145cf84e76ff58d890cc5",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 581.0,
+        "Y": 274.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "d6d352b921034881beab4aa7641ed822",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 368.0,
+        "Y": 267.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "8a3ebe7e3eb44f21a124f5be3db03759",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 342.0,
+        "Y": 378.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "15863cf4b19146b09e631500e665ee46",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 826.0,
+        "Y": 273.0
+      }
+    ],
+    "Annotations": [],
+    "X": -279.0,
+    "Y": 11.0,
+    "Zoom": 1.0
+  }
+}

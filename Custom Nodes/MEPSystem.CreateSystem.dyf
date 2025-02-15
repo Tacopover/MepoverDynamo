@@ -1,0 +1,215 @@
+{
+  "Uuid": "2916c356-6479-4d53-a5ca-ac9b60399d40",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Creates a duct or piping system by providing a Mechanical- or PipingSystemType. Optional names can be provided for the systems",
+  "Name": "MEPSystem.CreateSystem",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nif isinstance(IN[0], list):\n\tsystemtypes = UnwrapElement(IN[0])\nelse:\n\tsystemtypes = [UnwrapElement(IN[0])]\nsl = len(systemtypes)\t\n\t\nif isinstance(IN[1], list):\n\tsystemnames = IN[1]\nelse:\n\tsystemnames = [IN[1]]\n\nlistout = []\nif IN[1] != None:\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,name in enumerate(systemnames):\n\t\tsys = systemtypes[i%sl]\n\t\tif sys.GetType() == Plumbing.PipeSystemType:\n\t\t\t#try:\n\t\t\tnewsys = Plumbing.PipingSystem.Create(doc,sys.Id,name)\n\t\t\tlistout.append(newsys.ToDSType(False))\n\t\t\t#except:\n\t\t\t\t#pass\n\t\telse:\n\t\t\t#try:\n\t\t\tnewsys = Mechanical.MechanicalSystem.Create(doc,sys.Id,name)\n\t\t\tlistout.append(newsys.ToDSType(False))\n\t\t\t#except:\n\t\t\t\t#pass\n\t\t\n\tTransactionManager.Instance.TransactionTaskDone()\nelse:\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor sys in systemtypes:\n\t\tif sys.GetType() == Plumbing.PipeSystemType:\n\t\t\ttry:\n\t\t\t\tnewsys = Plumbing.PipingSystem.Create(doc,sys.Id)\n\t\t\t\tlistout.append(newsys.ToDSType(False))\n\t\t\texcept:\n\t\t\t\tpass\n\t\telse:\n\t\t\ttry:\n\t\t\t\tnewsys = Mechanical.MechanicalSystem.Create(doc,sys.Id)\n\t\t\t\tlistout.append(newsys.ToDSType(False))\n\t\t\texcept:\n\t\t\t\tpass\n\t\t\n\tTransactionManager.Instance.TransactionTaskDone()\n\nOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "96fc32e87d6b4d4e84df543751a7ec42",
+      "Inputs": [
+        {
+          "Id": "eb1045dc86a74e088aa207585eccb0ff",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "28e50057abb34ad58e09e6d2fddc1373",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "8dce51ee191842f6b931e58cfff55437",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "SystemType",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "f6fdce9ac3cc400e98b766baea82e674",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "7a502a92310b440fb87fed7a254a0d7a",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Names",
+        "TypeName": "string",
+        "TypeRank": 0,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "5f1cac20ae744f128ee6581b7b63fdb0",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "108b486c59b940f7bce21a185f72a075",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Systems",
+      "Id": "0aaff73226c14ee78c8b3ce569eccc36",
+      "Inputs": [
+        {
+          "Id": "006aaddf3bb24dc89940c5c311f7cba8",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "8dce51ee191842f6b931e58cfff55437",
+      "End": "006aaddf3bb24dc89940c5c311f7cba8",
+      "Id": "1a4263be7961432abbf560ab468ae5df"
+    },
+    {
+      "Start": "7a502a92310b440fb87fed7a254a0d7a",
+      "End": "eb1045dc86a74e088aa207585eccb0ff",
+      "Id": "663af11822234476b3b976ed8a194e5b"
+    },
+    {
+      "Start": "108b486c59b940f7bce21a185f72a075",
+      "End": "28e50057abb34ad58e09e6d2fddc1373",
+      "Id": "34cd9c05023b4c40b55efbc9c7810117"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python: Create system",
+        "Id": "96fc32e87d6b4d4e84df543751a7ec42",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 531.0,
+        "Y": 457.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "f6fdce9ac3cc400e98b766baea82e674",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 304.0,
+        "Y": 442.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "5f1cac20ae744f128ee6581b7b63fdb0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 297.0,
+        "Y": 558.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "0aaff73226c14ee78c8b3ce569eccc36",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 787.0,
+        "Y": 453.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

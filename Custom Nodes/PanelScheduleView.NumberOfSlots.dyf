@@ -1,0 +1,165 @@
+{
+  "Uuid": "acdbe995-c64e-4cc2-96b8-f8dcdd296c2b",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.PanelSchedule",
+  "Description": "Returns the number of available slots in a panelschedule",
+  "Name": "PanelScheduleView.NumberOfSlots",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#Many thanks to Konrad K Sobon for his awesome ProcessList function!\ndef Unwrap(item):\n\treturn UnwrapElement(item)\n\ndef ProcessList(_func, _list):\n    return map( lambda x: ProcessList(_func, x) if type(x)==list else _func(x), _list )\n\nif isinstance(IN[0], list):\n\tpanelschedule = ProcessList(Unwrap, IN[0])\nelse:\n\tpanelschedule = [Unwrap(IN[0])]\n\t\n\t\ndef GetNumber(panelschedule):\n\treturn panelschedule.GetTableData().NumberOfSlots\n\n\nOUT = ProcessList(GetNumber, panelschedule)",
+      "VariableInputPorts": true,
+      "Id": "925212e5bf1445669b7cd1d5498939e8",
+      "Inputs": [
+        {
+          "Id": "e2b52abd55064191a4bc0a5e143f6cc2",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "f26ee6c2d6fb41849075968362f9c42c",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "PanelScheduleView",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "69aa78b685454a42bfea8fe9c23f4ee0",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "debe596a1e714f168abfd73bda380988",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Number",
+      "Id": "63eba79432f145df9d29ce18da497177",
+      "Inputs": [
+        {
+          "Id": "d86379d6bf5242fb87706b8ddae84cbd",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "f26ee6c2d6fb41849075968362f9c42c",
+      "End": "d86379d6bf5242fb87706b8ddae84cbd",
+      "Id": "76079e8eb4534b4397ff57120b59a3b3"
+    },
+    {
+      "Start": "debe596a1e714f168abfd73bda380988",
+      "End": "e2b52abd55064191a4bc0a5e143f6cc2",
+      "Id": "0877aa6d105b4e3e994686a80829f8f2"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "925212e5bf1445669b7cd1d5498939e8",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 370.5,
+        "Y": 320.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "69aa78b685454a42bfea8fe9c23f4ee0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 128.0,
+        "Y": 304.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "63eba79432f145df9d29ce18da497177",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 580.0,
+        "Y": 311.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

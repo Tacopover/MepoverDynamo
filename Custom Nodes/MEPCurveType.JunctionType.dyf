@@ -1,0 +1,165 @@
+{
+  "Uuid": "6de47112-123b-41a8-8e0d-cddb356b13cb",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Returns the preferred JunctionType (tap or tee) of a DuctType or PipeType",
+  "Name": "MEPCurveType.JunctionType",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#Many thanks to Konrad K Sobon for his awesome ProcessList function!\ndef Unwrap(item):\n\treturn UnwrapElement(item)\n\ndef ProcessList(_func, _list):\n    return map( lambda x: ProcessList(_func, x) if type(x)==list else _func(x), _list )\n\nif isinstance(IN[0], list):\n\tpipetypes = ProcessList(Unwrap, IN[0])\nelse:\n\tpipetypes = [Unwrap(IN[0])]\n\t\n\t\ndef getJunctionType(pipetype):\n\treturn pipetype.RoutingPreferenceManager.PreferredJunctionType\n\n\n\nOUT = ProcessList(getJunctionType, pipetypes)",
+      "VariableInputPorts": true,
+      "Id": "32da7e3fa60446518c5982f20edc59aa",
+      "Inputs": [
+        {
+          "Id": "134898b6c5194124b63a2fc4dc9bd300",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "d9b8f30a309949e1a5ae94af78b95cf7",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "MEPCurveType",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "3d055eb32d744dd4b39a066ae714f4cd",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "e5709178408b4a9da0146c3684d14e48",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "JunctionType",
+      "Id": "7137c9b801ea443eb229f417183d9c97",
+      "Inputs": [
+        {
+          "Id": "6b463c9e98dc49c0b36055ca80d1f720",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "d9b8f30a309949e1a5ae94af78b95cf7",
+      "End": "6b463c9e98dc49c0b36055ca80d1f720",
+      "Id": "89529914ccbc472781d273379ce715eb"
+    },
+    {
+      "Start": "e5709178408b4a9da0146c3684d14e48",
+      "End": "134898b6c5194124b63a2fc4dc9bd300",
+      "Id": "325e8ad6bb9b4fb3b8c88a8114c8f651"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "32da7e3fa60446518c5982f20edc59aa",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 416.0,
+        "Y": 168.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "3d055eb32d744dd4b39a066ae714f4cd",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 228.869867969849,
+        "Y": 158.437420880115
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "7137c9b801ea443eb229f417183d9c97",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 604.951980452261,
+        "Y": 158.440405154344
+      }
+    ],
+    "Annotations": [],
+    "X": -7.72950517003926,
+    "Y": 149.298027098245,
+    "Zoom": 0.76669208910492
+  }
+}

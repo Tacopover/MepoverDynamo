@@ -1,0 +1,170 @@
+{
+  "Uuid": "ce51118f-428c-482c-bd81-89021449bd27",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.PanelSchedule",
+  "Description": "Returns a Panel Schedule View by supplying the Panel Name value. Will only return a Panel Schedule View if it has been created, otherwise it returns null",
+  "Name": "PanelScheduleView_by_PanelName",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Panel_Name",
+        "TypeName": "string",
+        "TypeRank": 0,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "6be7065e782c4f7e86d6510ec3c35e54",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "8d384b2c3dca49eca3fe763bdcf2304e",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "PanelScheduleView",
+      "Id": "319e4d3762e04ade866c4f252e2abba9",
+      "Inputs": [
+        {
+          "Id": "bbf197a48ff94e778d66a3616a8b4fcb",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\n\r\nclr.AddReference(\"RevitServices\")\r\nimport RevitServices\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\nclr.AddReference(\"RevitAPI\")\r\nimport Autodesk\r\nfrom Autodesk.Revit.DB import *\r\n\r\nclr.AddReference(\"RevitNodes\")\r\nimport Revit\r\nclr.ImportExtensions(Revit.Elements)\r\nclr.ImportExtensions(Revit.GeometryConversion)\r\n\r\n\r\npanelname = IN[0]\r\n\r\nlistout = []\r\npanelviews = FilteredElementCollector(doc).OfClass(Electrical.PanelScheduleView).ToElements()\r\n\r\npaneldict = {}\r\nfor panelview in panelviews:\r\n\tpaneldict[panelview.Name] = panelview\r\n\r\n\r\nif panelname in paneldict:\r\n\tOUT = paneldict[panelname]\r\nelse:\r\n\tOUT = None",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "a5233223764f4e07a0aaca83cbeb0200",
+      "Inputs": [
+        {
+          "Id": "aa53cdb1238e4a04a65d825224840527",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "fa2568cdaa2548d5b742540e375e71f3",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "8d384b2c3dca49eca3fe763bdcf2304e",
+      "End": "aa53cdb1238e4a04a65d825224840527",
+      "Id": "996af23554104a158d55713b52ca1d37",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "fa2568cdaa2548d5b742540e375e71f3",
+      "End": "bbf197a48ff94e778d66a3616a8b4fcb",
+      "Id": "7590813234ef428c9ac8f37d1ab27692",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Author": "None provided",
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.13.1.3887",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Name": "Input",
+        "ShowGeometry": true,
+        "Id": "6be7065e782c4f7e86d6510ec3c35e54",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 89.333333333333314,
+        "Y": 280.66666666666674
+      },
+      {
+        "Name": "Output",
+        "ShowGeometry": true,
+        "Id": "319e4d3762e04ade866c4f252e2abba9",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 859.99999999999977,
+        "Y": 299.33333333333326
+      },
+      {
+        "Name": "PanelScheduleView by panelname",
+        "ShowGeometry": true,
+        "Id": "a5233223764f4e07a0aaca83cbeb0200",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 424.66666666666674,
+        "Y": 290.00000000000006
+      }
+    ],
+    "Annotations": [],
+    "X": -211.33333333333337,
+    "Y": -18.666666666666742,
+    "Zoom": 1.0
+  }
+}

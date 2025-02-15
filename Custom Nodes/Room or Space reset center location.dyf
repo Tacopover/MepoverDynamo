@@ -1,0 +1,290 @@
+{
+  "Uuid": "3a662c03-2a28-4b54-b990-480d8fc4b59a",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.RoomsAndSpaces",
+  "Description": "This node will attempt to reset the location of the room or space to its default center location",
+  "Name": "Room or Space reset center location",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nif isinstance(IN[0],list):\n\trooms = UnwrapElement(IN[0])\nelse:\n\trooms = [UnwrapElement(IN[0])]\n\t\nlistout = []\nlocations = []\n\nfor room in rooms:\n\tlevelId = room.get_Parameter(BuiltInParameter.ROOM_LEVEL_ID).AsElementId()\n\tlevel = doc.GetElement(levelId)\n\tcompuheight = level.get_Parameter(BuiltInParameter.LEVEL_ROOM_COMPUTATION_HEIGHT).AsDouble()\n\ttry:\n\t\tplanTopology = doc.get_PlanTopology(level)\n\t\tfor plancircuit in planTopology.Circuits:\n\t\t\tif room.GetType() == Architecture.Room:\n\t\t\t\tif plancircuit.IsRoomLocated == True:\n\t\t\t\t\tUvPoint = plancircuit.GetPointInside()\n\t\t\t\t\tpoint = XYZ(UvPoint.U,UvPoint.V,compuheight)\n\t\t\t\t\tif room.IsPointInRoom(point):\n\t\t\t\t\t\tbreak\n\t\t\telse:\n\t\t\t\ttry:\n\t\t\t\t\tUvPoint = plancircuit.GetPointInside()\n\t\t\t\t\tpoint = XYZ(UvPoint.U,UvPoint.V,compuheight)\n\t\t\t\t\tif room.IsPointInSpace(point):\n\t\t\t\t\t\tbreak\n\t\t\t\texcept:\n\t\t\t\t\tcontinue\n\t\tTransactionManager.Instance.EnsureInTransaction(doc)\n\t\troom.Location.Point = point\n\t\tTransactionManager.Instance.TransactionTaskDone()\n\t\tlistout.append(room)\n\t\tlocations.append(point.ToPoint())\n\texcept:\n\t\tlistout.append(None)\n\t\tlocations.append(None)\n\nOUT = listout, locations",
+      "VariableInputPorts": true,
+      "Id": "76010874c8694ba1a5213680b66634ed",
+      "Inputs": [
+        {
+          "Id": "5feedef1773e4cfb93563bb4f07cf900",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "e335ce9810e64ec9bcc6ef02c1801585",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Rooms_Spaces",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "c72506f4d59643fcb4f1d26f1cfffa0d",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "dbd5275d14954996b7b4e56703d8f981",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[0];",
+      "Id": "5f36b6a0f10e4b56a6ab626d7566eaa8",
+      "Inputs": [
+        {
+          "Id": "0900f872c1fd458192c6f2ef2f7d982a",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "fe13dbc9faa6402fab57b68aef6bd5c0",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[1];",
+      "Id": "d3a29b0c9cb94d9ea98385159bd22a33",
+      "Inputs": [
+        {
+          "Id": "6d120e1aead34b2e9328f6d78cacd2ad",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "59535db0d86245418ccea4813a61f2a6",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Rooms/Spaces",
+      "Id": "2c5b74ad364f45ae950829150caeb01b",
+      "Inputs": [
+        {
+          "Id": "91c71d836bcc4e4b84267b7849206e2f",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Locations",
+      "Id": "7199545475ee46c0a59948c1fb828364",
+      "Inputs": [
+        {
+          "Id": "f5477ce98e2d42ef92e95a8ea129ac44",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "e335ce9810e64ec9bcc6ef02c1801585",
+      "End": "0900f872c1fd458192c6f2ef2f7d982a",
+      "Id": "1654932a6fe44768a60d5168342b7b8b"
+    },
+    {
+      "Start": "e335ce9810e64ec9bcc6ef02c1801585",
+      "End": "6d120e1aead34b2e9328f6d78cacd2ad",
+      "Id": "899027a4a5a54c8c99ddec179993eb23"
+    },
+    {
+      "Start": "dbd5275d14954996b7b4e56703d8f981",
+      "End": "5feedef1773e4cfb93563bb4f07cf900",
+      "Id": "6e34dd246db64b2ea058c5629dfccc26"
+    },
+    {
+      "Start": "fe13dbc9faa6402fab57b68aef6bd5c0",
+      "End": "91c71d836bcc4e4b84267b7849206e2f",
+      "Id": "da19c74535e34707b25de62fbbf89317"
+    },
+    {
+      "Start": "59535db0d86245418ccea4813a61f2a6",
+      "End": "f5477ce98e2d42ef92e95a8ea129ac44",
+      "Id": "e0e1238c23ad4d3ba0c91fe84f284dd0"
+    }
+  ],
+  "Dependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.0.3.8810",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "76010874c8694ba1a5213680b66634ed",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 303.0,
+        "Y": 232.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "c72506f4d59643fcb4f1d26f1cfffa0d",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 88.0,
+        "Y": 215.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "5f36b6a0f10e4b56a6ab626d7566eaa8",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 502.0,
+        "Y": 173.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "d3a29b0c9cb94d9ea98385159bd22a33",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 500.0,
+        "Y": 276.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "2c5b74ad364f45ae950829150caeb01b",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 657.0,
+        "Y": 170.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "7199545475ee46c0a59948c1fb828364",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 655.0,
+        "Y": 276.0
+      }
+    ],
+    "Annotations": [],
+    "X": -1.2470529996077744,
+    "Y": 51.0867487506506,
+    "Zoom": 1.0298856394709861
+  }
+}

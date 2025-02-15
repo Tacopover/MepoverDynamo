@@ -1,0 +1,165 @@
+{
+  "Uuid": "51723c02-17fc-4a82-8895-75897c36476b",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Family",
+  "Description": "Creates a new family type with the given name (only works in Family Editor)",
+  "Name": "FamilyManager.CreateNewType",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\ntypes = IN[0]\n\n\nFamilyMan = doc.FamilyManager\nTransactionManager.Instance.EnsureInTransaction(doc)\ntry:\n\tnewtype = FamilyMan.NewType(types)\nexcept:\n\tnewtype = \"could not create new type\"\nTransactionManager.Instance.TransactionTaskDone()\n\nOUT = newtype",
+      "VariableInputPorts": true,
+      "Id": "e579d6c7eb0f4a43957538f4c67b37b5",
+      "Inputs": [
+        {
+          "Id": "e02f918d2ce0453bae29eb8fb3b6d0ed",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "2fb18c952bb344fda68c285274ad61c6",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "NewType",
+        "TypeName": "string",
+        "TypeRank": 0,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "2421b4602b2f4136a1612dadc2a07513",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "d45334cb8ecf4af6b60539c631cf0366",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "NewType",
+      "Id": "1dcc65981cce49bb8fe2379bfbe2cb7f",
+      "Inputs": [
+        {
+          "Id": "f8c0097ee7154c02a9dcfe406387e1a4",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "2fb18c952bb344fda68c285274ad61c6",
+      "End": "f8c0097ee7154c02a9dcfe406387e1a4",
+      "Id": "fe0cbe5fa5174e7ea2cc633bdc6f56fe"
+    },
+    {
+      "Start": "d45334cb8ecf4af6b60539c631cf0366",
+      "End": "e02f918d2ce0453bae29eb8fb3b6d0ed",
+      "Id": "67f59dc63b8a4db5b89c1efb4eb2f5c6"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Create new types",
+        "Id": "e579d6c7eb0f4a43957538f4c67b37b5",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 427.0,
+        "Y": 313.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "2421b4602b2f4136a1612dadc2a07513",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 205.228650825846,
+        "Y": 316.569613201482
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "1dcc65981cce49bb8fe2379bfbe2cb7f",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 596.223177459929,
+        "Y": 314.112711631765
+      }
+    ],
+    "Annotations": [],
+    "X": -528.855218186287,
+    "Y": -357.15237254008,
+    "Zoom": 1.75350378564085
+  }
+}
