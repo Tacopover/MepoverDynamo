@@ -1,0 +1,165 @@
+{
+  "Uuid": "80f07ca6-bede-47f4-910c-c158b865efc3",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Will return the insulation of a pipe or duct",
+  "Name": "Element.GetInsulation",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nif isinstance(IN[0], list):\n\tpipes = UnwrapElement(IN[0])\nelse:\n\tpipes = [UnwrapElement(IN[0])]\n\nlistout = []\n\nfor pipe in pipes:\n\ttry:\n\t\tinsulation = InsulationLiningBase.GetInsulationIds(doc,pipe.Id)\n\t\tlistout.append(doc.GetElement(insulation[0]))\n\texcept:\n\t\tlistout.append(None)\n\n\nOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "afad662b05614e68801df2ab2855e211",
+      "Inputs": [
+        {
+          "Id": "c7442ece801b4034bc3334f39c10e906",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "82dff6b8899442888ff5c316fc953f8d",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "c8296b5bb8c34c28adc6c4679a2707d8",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "d66fa166f3094b9f8dc88c770c477c39",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Insulation",
+      "Id": "77ab44510db74fe587d336a4b594f4ae",
+      "Inputs": [
+        {
+          "Id": "bc5f78d8531a4d2a8bdeedaf4e68319c",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "82dff6b8899442888ff5c316fc953f8d",
+      "End": "bc5f78d8531a4d2a8bdeedaf4e68319c",
+      "Id": "e1763b84e00345dcab5ed0e86d6b0d9d"
+    },
+    {
+      "Start": "d66fa166f3094b9f8dc88c770c477c39",
+      "End": "c7442ece801b4034bc3334f39c10e906",
+      "Id": "4f066a676b3f4ca394ae8b07b1aa7c3f"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "afad662b05614e68801df2ab2855e211",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 416.725744829349,
+        "Y": 240.855792350492
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "c8296b5bb8c34c28adc6c4679a2707d8",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 195.0,
+        "Y": 229.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "77ab44510db74fe587d336a4b594f4ae",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 644.0,
+        "Y": 246.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

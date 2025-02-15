@@ -1,0 +1,165 @@
+{
+  "Uuid": "ddeed1c3-6d67-4368-bfdb-256125b567c2",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Returns the mechanical or plumbing system of the element",
+  "Name": "Element.System",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nclr.AddReference('ProtoGeometry')\nfrom Autodesk.DesignScript.Geometry import *\n\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0],list):\n\ttoggle = 0\n\telement = UnwrapElement(IN[0])\nelse:\n\ttoggle = 1\n\telement = [UnwrapElement(IN[0])]\n\ndef getSystem(elem):\n\ttry:\n\t\tsystem = elem.MEPSystem\n\t\treturn system\n\texcept:\t\t\n\t\ttry:\n\t\t\tconnectors = elem.ConnectorManager.Connectors\n\t\texcept:\n\t\t\tconnectors = elem.MEPModel.ConnectorManager.Connectors\n\t\t\n\t\tif connectors.Size < 2:\t\n\t\t\tfor conn in connectors:\n\t\t\t\tconnector = conn\n\t\t\t\tbreak\n\t\t\treturn connector.MEPSystem\n\t\telse:\n\t\t\tsystems = []\n\t\t\tids = set()\n\t\t\tfor conn in connectors:\n\t\t\t\ttry:\n\t\t\t\t\tif conn.MEPSystem.Id not in ids:\n\t\t\t\t\t\tids.add(conn.MEPSystem.Id)\n\t\t\t\t\t\tsystems.append(conn.MEPSystem)\n\t\t\t\texcept:\n\t\t\t\t\tpass\n\t\t\treturn systems\n\nlistout = []\t\nfor x in element:\n\ttry:\n\t\tsystem = getSystem(x)\n\t\tif isinstance(system, list) and len(system) == 1:\n\t\t\tlistout.append(system[0])\n\t\telse:\n\t\t\tlistout.append(system)\n\texcept:\n\t\tlistout.append(None)\n#Assign your output to the OUT variable.\nif toggle:\n\tOUT = system\nelse:\n\tOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "347a66b8a4604eb4b132a7ef844ca605",
+      "Inputs": [
+        {
+          "Id": "51616a1976094f0fa3f260775571c115",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "dc7389f123dd4d03ba2039a90d2f9034",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Elements",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "4e25cd72d48b41fb86e1553c93f571ff",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "3716e958fba742dfaf05979cd5f98709",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Systems",
+      "Id": "151865ee902c4ab08b937d940d70c06b",
+      "Inputs": [
+        {
+          "Id": "48e412f64a4d46c99956115c707876d1",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "dc7389f123dd4d03ba2039a90d2f9034",
+      "End": "48e412f64a4d46c99956115c707876d1",
+      "Id": "10af5903af1f41caa41b9f0c1840d87f"
+    },
+    {
+      "Start": "3716e958fba742dfaf05979cd5f98709",
+      "End": "51616a1976094f0fa3f260775571c115",
+      "Id": "a813dcf956a541ad92b2c575f7eeda5e"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": 8457.298828125,
+      "EyeY": 180513.65625,
+      "EyeZ": 266079.0625,
+      "LookX": 157372.3125,
+      "LookY": -221208.609375,
+      "LookZ": -145782.609375,
+      "UpX": 0.40490305423736572,
+      "UpY": 0.83388584852218628,
+      "UpZ": -0.37508392333984375
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "347a66b8a4604eb4b132a7ef844ca605",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 282.0,
+        "Y": 252.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "4e25cd72d48b41fb86e1553c93f571ff",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 119.0,
+        "Y": 253.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "151865ee902c4ab08b937d940d70c06b",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 477.0,
+        "Y": 245.0
+      }
+    ],
+    "Annotations": [],
+    "X": -346.591128013643,
+    "Y": -345.534447745309,
+    "Zoom": 2.05668026833428
+  }
+}

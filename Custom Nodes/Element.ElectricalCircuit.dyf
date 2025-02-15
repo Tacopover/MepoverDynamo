@@ -1,0 +1,165 @@
+{
+  "Uuid": "745fbe65-7a15-4db4-89d4-b7c3f9b39530",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Returns the electrical circuit of the element",
+  "Name": "Element.ElectricalCircuit",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nclr.AddReference('ProtoGeometry')\nfrom Autodesk.DesignScript.Geometry import *\n\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0],list):\n\ttoggle = 0\n\telement = UnwrapElement(IN[0])\nelse:\n\ttoggle = 1\n\telement = [UnwrapElement(IN[0])]\n\ndef getSystem(elem):\n\tsystem = elem.MEPModel.GetElectricalSystems()\n\t\n\tif system.Count == 0:\n\t\treturn None\n\telif system.Count == 1:\t\n\t\tfor sys in system:\n\t\t\treturn sys\n\telse:\n\t\treturn [x for x in system]\n\nlistout = []\nsystem = None\nfor x in element:\n\ttry:\n\t\tsystem = getSystem(x)\n\t\tlistout.append(system)\n\texcept:\n\t\tlistout.append(None)\n#Assign your output to the OUT variable.\nif toggle:\n\tOUT = system\nelse:\n\tOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "f448d58f13344be2a2cf5aaa22a8c33d",
+      "Inputs": [
+        {
+          "Id": "bf221d5b2d094df7bf69da04a328d044",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "9411496da9774d0086a3838c3e708e53",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "105fcf015b354179a96d91a1d73112e3",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "38235971325e41c88d8ef08a490b0450",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Circuit",
+      "Id": "77912eac2a514bd4a41083442dc2e208",
+      "Inputs": [
+        {
+          "Id": "33e6dbad7bd041529ed0e623b542d1e4",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "9411496da9774d0086a3838c3e708e53",
+      "End": "33e6dbad7bd041529ed0e623b542d1e4",
+      "Id": "a9e80010efcd4270afbceab5ad54dd24"
+    },
+    {
+      "Start": "38235971325e41c88d8ef08a490b0450",
+      "End": "bf221d5b2d094df7bf69da04a328d044",
+      "Id": "4ee79c364b5044a989f3473d172205c9"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "f448d58f13344be2a2cf5aaa22a8c33d",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 394.40301019224694,
+        "Y": 229.54574990931744
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "105fcf015b354179a96d91a1d73112e3",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 176.0,
+        "Y": 237.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "77912eac2a514bd4a41083442dc2e208",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 548.0,
+        "Y": 237.0
+      }
+    ],
+    "Annotations": [],
+    "X": -216.56687499999998,
+    "Y": -109.24388749999997,
+    "Zoom": 1.33823125
+  }
+}

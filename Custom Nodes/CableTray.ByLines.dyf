@@ -1,0 +1,374 @@
+{
+  "Uuid": "0874742c-86bb-44ad-bf35-96ca29454223",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Creates CableTray by Lines, CableTrayType, Level, Width and Height",
+  "Name": "CableTray.ByLines",
+  "ElementResolver": {
+    "ResolutionMap": {
+      "Elements.UnknownElement": {
+        "Key": "Revit.Elements",
+        "Value": "LunchBox.dll"
+      },
+      "Element": {
+        "Key": "Revit.Elements.Element",
+        "Value": "RevitNodes.dll"
+      }
+    }
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\ntoggle = \"\"\n\nif isinstance(IN[0], list):\n\tlines = IN[0]\nelse:\n\tlines = [IN[0]]\nFirstPoint = [x.StartPoint for x in lines]\nSecondPoint = [x.EndPoint for x in lines]\ncabletraytype = UnwrapElement(IN[1])\nif isinstance(IN[2], list):\n\tlevel = UnwrapElement(IN[2])\n\ttoggle += \"0\"\nelse:\n\tlevel = [UnwrapElement(IN[2])]\nif isinstance(IN[3], list):\n\twidth = IN[3]\n\ttoggle += \"1\"\nelse:\n\twidth = [IN[3]]\nif isinstance(IN[4], list):\n\theight = IN[4]\n\ttoggle += \"1\"\nelse:\n\theight = [IN[4]]\n\nelements = []\n\nif toggle == \"\":\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,x in enumerate(FirstPoint):\n\t\ttray = Autodesk.Revit.DB.Electrical.CableTray.Create(doc,cabletraytype.Id,FirstPoint[i].ToXyz(),SecondPoint[i].ToXyz(),level[0].Id)\n\t\t\n\t\tparam = tray.get_Parameter(BuiltInParameter.RBS_CABLETRAY_WIDTH_PARAM)\n\t\tparam.SetValueString(width[0].ToString())\n\t\t\n\t\tparam2 = tray.get_Parameter(BuiltInParameter.RBS_CABLETRAY_HEIGHT_PARAM)\n\t\tparam2.SetValueString(height[0].ToString())\n\n\t\telements.append(tray.ToDSType(False))\n\n\tTransactionManager.Instance.TransactionTaskDone()\n\t\nelif toggle == \"0\":\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,x in enumerate(FirstPoint):\n\t\ttray = Autodesk.Revit.DB.Electrical.CableTray.Create(doc,cabletraytype.Id,FirstPoint[i].ToXyz(),SecondPoint[i].ToXyz(),level[i].Id)\n\t\t\n\t\tparam = tray.get_Parameter(BuiltInParameter.RBS_CABLETRAY_WIDTH_PARAM)\n\t\tparam.SetValueString(width[0].ToString())\n\t\t\n\t\tparam2 = tray.get_Parameter(BuiltInParameter.RBS_CABLETRAY_HEIGHT_PARAM)\n\t\tparam2.SetValueString(height[0].ToString())\n\n\t\telements.append(tray.ToDSType(False))\n\n\tTransactionManager.Instance.TransactionTaskDone()\n\t\nelif toggle == \"11\":\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,x in enumerate(FirstPoint):\n\t\ttray = Autodesk.Revit.DB.Electrical.CableTray.Create(doc,cabletraytype.Id,FirstPoint[i].ToXyz(),SecondPoint[i].ToXyz(),level[0].Id)\n\t\t\n\t\tparam = tray.get_Parameter(BuiltInParameter.RBS_CABLETRAY_WIDTH_PARAM)\n\t\tparam.SetValueString(width[i].ToString())\n\t\t\n\t\tparam2 = tray.get_Parameter(BuiltInParameter.RBS_CABLETRAY_HEIGHT_PARAM)\n\t\tparam2.SetValueString(height[i].ToString())\n\n\t\telements.append(tray.ToDSType(False))\n\n\tTransactionManager.Instance.TransactionTaskDone()\n\t\nelif toggle == \"011\":\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,x in enumerate(FirstPoint):\n\t\ttray = Autodesk.Revit.DB.Electrical.CableTray.Create(doc,cabletraytype.Id,FirstPoint[i].ToXyz(),SecondPoint[i].ToXyz(),level[i].Id)\n\t\t\n\t\tparam = tray.get_Parameter(BuiltInParameter.RBS_CABLETRAY_WIDTH_PARAM)\n\t\tparam.SetValueString(width[i].ToString())\n\t\t\n\t\tparam2 = tray.get_Parameter(BuiltInParameter.RBS_CABLETRAY_HEIGHT_PARAM)\n\t\tparam2.SetValueString(height[i].ToString())\n\n\t\telements.append(tray.ToDSType(False))\n\n\tTransactionManager.Instance.TransactionTaskDone()\n\n\nOUT = elements",
+      "VariableInputPorts": true,
+      "Id": "553a79db2fab4e43b8dfb3408f1b27bb",
+      "Inputs": [
+        {
+          "Id": "a944023766db4b2cbe6d9864464d2c31",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "915d6d4b94cc4d65a62fce4581e5334c",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "58cac16762be4f07acf96c09597ca322",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "75bdf7847dd34748832b861e89bc7111",
+          "Name": "IN[3]",
+          "Description": "Input #3",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "d830970b9c024e3c9e4baedfe6b23bd1",
+          "Name": "IN[4]",
+          "Description": "Input #4",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "58636729849c4c609ef65da584c58821",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Lines",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "34fff23d0d4044f0b9edb1b9779aa4c0",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "228ed6f08c78420e8e7aac832e7456db",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "CableTrayType",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "a707cff44e7e4f12bcc3c3fe09129c6c",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "9e0773aafcf04ffea380b1cf0e4b0fdf",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "level",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "0926d3d46f9f466786c1e843859d7e94",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "7aec621b66b8427f99c0e50aced4f15a",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Width",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "3e90122f6e0f4ec38204e2bcdea239ed",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "dfe178846c6246278c7364bc87b77516",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Height",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "41a000d6cb16417b95ee520a2372dbb7",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "4829527157ce40c888e582397ed72d1f",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Cable Trays",
+      "Id": "e5a9e542be13466a8a605204bbc6d316",
+      "Inputs": [
+        {
+          "Id": "ee3e2d873f284bc7ae62a2bc56f8a685",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "58636729849c4c609ef65da584c58821",
+      "End": "ee3e2d873f284bc7ae62a2bc56f8a685",
+      "Id": "028afc63a3564380a50c09415c176b0f"
+    },
+    {
+      "Start": "228ed6f08c78420e8e7aac832e7456db",
+      "End": "a944023766db4b2cbe6d9864464d2c31",
+      "Id": "7cc64323f75a4f98b4e330198e42d72c"
+    },
+    {
+      "Start": "9e0773aafcf04ffea380b1cf0e4b0fdf",
+      "End": "915d6d4b94cc4d65a62fce4581e5334c",
+      "Id": "d892c417a5454f698f2f35db50471b44"
+    },
+    {
+      "Start": "7aec621b66b8427f99c0e50aced4f15a",
+      "End": "58cac16762be4f07acf96c09597ca322",
+      "Id": "d3a8ef0b336a4185a5da416bee5a6006"
+    },
+    {
+      "Start": "dfe178846c6246278c7364bc87b77516",
+      "End": "75bdf7847dd34748832b861e89bc7111",
+      "Id": "8dd4d2acbdcb433b8f859e41e92509c3"
+    },
+    {
+      "Start": "4829527157ce40c888e582397ed72d1f",
+      "End": "d830970b9c024e3c9e4baedfe6b23bd1",
+      "Id": "61c5e041e9754ffeb917e7b2b7fe0381"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "553a79db2fab4e43b8dfb3408f1b27bb",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 327.0,
+        "Y": 225.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "34fff23d0d4044f0b9edb1b9779aa4c0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 100.0,
+        "Y": 203.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "a707cff44e7e4f12bcc3c3fe09129c6c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 35.5311572700297,
+        "Y": 264.062314540059
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "0926d3d46f9f466786c1e843859d7e94",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 102.0,
+        "Y": 330.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "3e90122f6e0f4ec38204e2bcdea239ed",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 91.5519287833829,
+        "Y": 398.376854599406
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "41a000d6cb16417b95ee520a2372dbb7",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 98.0,
+        "Y": 461.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "e5a9e542be13466a8a605204bbc6d316",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 547.0,
+        "Y": 224.0
+      }
+    ],
+    "Annotations": [],
+    "X": 15.775,
+    "Y": -34.5675,
+    "Zoom": 0.8425
+  }
+}

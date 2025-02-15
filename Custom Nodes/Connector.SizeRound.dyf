@@ -1,0 +1,165 @@
+{
+  "Uuid": "13020e37-81eb-484d-a9bc-534ca6a01acf",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Connectors",
+  "Description": "Returns the Radius of the connector (in feet)",
+  "Name": "Connector.SizeRound",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#Many thanks to Konrad K Sobon for his awesome ProcessList function!\ndef Unwrap(item):\n\treturn UnwrapElement(item)\n\ndef ProcessList(_func, _list):\n    return map( lambda x: ProcessList(_func, x) if type(x)==list else _func(x), _list )\n\nif isinstance(IN[0], list):\n\tconnectors = ProcessList(Unwrap, IN[0])\nelse:\n\tconnectors = [Unwrap(IN[0])]\n\t\n\t\ndef getConnSizeRound(connector):\n\tr = None\n\ttry:\n\t\tr = connector.Radius\n\texcept:\n\t\tpass\n\treturn r\n\n\n\t\t\t\n#Assign your output to the OUT variable.\n\nOUT = ProcessList(getConnSizeRound, connectors)",
+      "VariableInputPorts": true,
+      "Id": "b6fe14ac0b6a46afb165e4fb1c637370",
+      "Inputs": [
+        {
+          "Id": "18c56a29ca884fbf85fe32d29a9fd44b",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "f2294ede26574979bb89b7410b345b79",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "connector",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "d29197da3ba84b7ea78a78a593a318ed",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "6a3c072078194a7d84c7c09288a97211",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Radius",
+      "Id": "851ab14f664449f1b8861f3fb1615d14",
+      "Inputs": [
+        {
+          "Id": "aa2a2b391e9244989f7deb5b1fdd5c57",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "f2294ede26574979bb89b7410b345b79",
+      "End": "aa2a2b391e9244989f7deb5b1fdd5c57",
+      "Id": "5f049347522442759d944efaf8f12e38"
+    },
+    {
+      "Start": "6a3c072078194a7d84c7c09288a97211",
+      "End": "18c56a29ca884fbf85fe32d29a9fd44b",
+      "Id": "1f436ba0130146f18bf4cdf58f5764de"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": 2772.038818359375,
+      "EyeY": 6440.66748046875,
+      "EyeZ": 8656.0224609375,
+      "LookX": -14564.759765625,
+      "LookY": -5370.056640625,
+      "LookZ": -7006.21728515625,
+      "UpX": -0.094196602702140808,
+      "UpY": 0.99452191591262817,
+      "UpZ": -0.045312240719795227
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python",
+        "Id": "b6fe14ac0b6a46afb165e4fb1c637370",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 589.0,
+        "Y": 274.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "d29197da3ba84b7ea78a78a593a318ed",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 355.0,
+        "Y": 265.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "851ab14f664449f1b8861f3fb1615d14",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 793.0,
+        "Y": 116.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

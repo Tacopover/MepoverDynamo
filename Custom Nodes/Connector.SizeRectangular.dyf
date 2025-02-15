@@ -1,0 +1,291 @@
+{
+  "Uuid": "5fbe44a6-9234-4c71-bb3f-1cd0a3bc03a0",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Connectors",
+  "Description": "Returns the Height and the Width of the connector (in feet)",
+  "Name": "Connector.SizeRectangular",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "connector",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "d29197da3ba84b7ea78a78a593a318ed",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "f307bb4c6f9d428fa961aebe9709d6ae",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Height",
+      "Id": "851ab14f664449f1b8861f3fb1615d14",
+      "Inputs": [
+        {
+          "Id": "d07e9bac188f4004a15351e7a04543b3",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Width",
+      "Id": "685b71d1615c419e9d28ef407ca6bf2a",
+      "Inputs": [
+        {
+          "Id": "a83bacbbb21e46d8bc1d284e7f390eba",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[0];",
+      "Id": "6dba0698492f42a38595961f7fd17551",
+      "Inputs": [
+        {
+          "Id": "a1120fa89db44b79ba0b566cd5154bcd",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "9478b4f10b5545b08ef2e4844b7af5e1",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[1];",
+      "Id": "8cc18a7783394edb94a8d4b2d964a85e",
+      "Inputs": [
+        {
+          "Id": "966a2971b81141b5acdf385b0be1d8d4",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "5b12c0301dc04d9ababdb36863a35048",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#Many thanks to Konrad K Sobon for his awesome ProcessList function!\ndef Unwrap(item):\n\treturn UnwrapElement(item)\n\ndef ProcessList(_func, _list):\n    return map( lambda x: ProcessList(_func, x) if type(x)==list else _func(x), _list )\n\nif isinstance(IN[0], list):\n\tconnectors = ProcessList(Unwrap, IN[0])\nelse:\n\tconnectors = [Unwrap(IN[0])]\n\t\n\t\ndef getConnSizeHeight(connector):\n\th = None\n\ttry:\n\t\th = connector.Height\n\texcept:\n\t\tpass\n\treturn h\n\ndef getConnSizeWidth(connector):\n\tw = None\n\ttry:\n\t\tw = connector.Width\n\texcept:\n\t\tpass\n\treturn w\n\t\t\t\n#Assign your output to the OUT variable.\n\nOUT = [ProcessList(getConnSizeHeight, connectors),ProcessList(getConnSizeWidth, connectors)]",
+      "VariableInputPorts": true,
+      "Id": "9f1ddf3c0da643e2981de545f0b3a769",
+      "Inputs": [
+        {
+          "Id": "056d3e326b1c47fda6204f4ca9679cf5",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "9a7dfba1c54f44bd810f0cb2a8a970d5",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "f307bb4c6f9d428fa961aebe9709d6ae",
+      "End": "056d3e326b1c47fda6204f4ca9679cf5",
+      "Id": "4b5cab8598aa449b9a7d1c88ee21ad83"
+    },
+    {
+      "Start": "9478b4f10b5545b08ef2e4844b7af5e1",
+      "End": "d07e9bac188f4004a15351e7a04543b3",
+      "Id": "0777811d4f1847ebba8982dfec84de3d"
+    },
+    {
+      "Start": "5b12c0301dc04d9ababdb36863a35048",
+      "End": "a83bacbbb21e46d8bc1d284e7f390eba",
+      "Id": "da570d61a7ee4ba29c57a408d65b0752"
+    },
+    {
+      "Start": "9a7dfba1c54f44bd810f0cb2a8a970d5",
+      "End": "a1120fa89db44b79ba0b566cd5154bcd",
+      "Id": "ea76b77e50f646b2b6a68d22e93012c9"
+    },
+    {
+      "Start": "9a7dfba1c54f44bd810f0cb2a8a970d5",
+      "End": "966a2971b81141b5acdf385b0be1d8d4",
+      "Id": "150db82edb284a3289b5b26c23dfe030"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "d29197da3ba84b7ea78a78a593a318ed",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 355.0,
+        "Y": 265.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "851ab14f664449f1b8861f3fb1615d14",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 793.0,
+        "Y": 116.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "685b71d1615c419e9d28ef407ca6bf2a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 804.0,
+        "Y": 344.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "6dba0698492f42a38595961f7fd17551",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 585.0,
+        "Y": 110.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Code Block",
+        "Id": "8cc18a7783394edb94a8d4b2d964a85e",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 666.0,
+        "Y": 431.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Python",
+        "Id": "9f1ddf3c0da643e2981de545f0b3a769",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 518.0,
+        "Y": 277.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

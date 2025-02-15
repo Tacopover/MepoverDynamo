@@ -1,0 +1,165 @@
+{
+  "Uuid": "89b0f8eb-8cb0-4228-b71f-78a690376aee",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Returns the number of connectors on the cable tray or conduit fitting",
+  "Name": "ElectricalFitting connector count",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nclr.AddReference('ProtoGeometry')\nfrom Autodesk.DesignScript.Geometry import *\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0], list):\n\tfittings = UnwrapElement(IN[0])\nelse:\n\tfittings = [UnwrapElement(IN[0])]\n\t\ncount = []\n\nfor x in fittings:\n\tcount.append(x.MEPModel.ConnectorManager.Connectors.Size)\n\n#Assign your output to the OUT variable.\nOUT = count",
+      "VariableInputPorts": true,
+      "Id": "718130a35b5540bc9c3944732d72d39c",
+      "Inputs": [
+        {
+          "Id": "938b8436c9214beca6eeb5546a8d9328",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "ca8044fcac174b549c8be447b0741a26",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Fittings",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "1996340b780e4c46b22ee8851d3fb981",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "473f7d1634ec4063b8ce94c38027ba68",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Connector Count",
+      "Id": "f31632b68d01459a82d67a0c5a08dd90",
+      "Inputs": [
+        {
+          "Id": "d1b574cdc1bb4faa808bb2368f68ae01",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "ca8044fcac174b549c8be447b0741a26",
+      "End": "d1b574cdc1bb4faa808bb2368f68ae01",
+      "Id": "837e9f7142b645f5bf7a31a1e63dc90d"
+    },
+    {
+      "Start": "473f7d1634ec4063b8ce94c38027ba68",
+      "End": "938b8436c9214beca6eeb5546a8d9328",
+      "Id": "fbce0097a501494da57b2f8d0a13db44"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "718130a35b5540bc9c3944732d72d39c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 286.0,
+        "Y": 291.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "1996340b780e4c46b22ee8851d3fb981",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 80.0,
+        "Y": 273.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "f31632b68d01459a82d67a0c5a08dd90",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 507.0,
+        "Y": 247.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

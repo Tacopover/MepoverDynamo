@@ -1,0 +1,165 @@
+{
+  "Uuid": "37ef70e6-cf97-40b9-b584-2d68d77d5057",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Connectors",
+  "Description": "Returns every connector on an element (also return connectors of a System)",
+  "Name": "Element.Connectors",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "\nimport clr\nimport math\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0], list):\n\telements = UnwrapElement(IN[0])\n\ttoggle = 0\nelse:\n\ttoggle = 1\n\telements = [UnwrapElement(IN[0])]\n\t\n\nlistout = []\n\nfor element in elements:\n\ttry:\n\t\tconnectors = element.MEPModel.ConnectorManager.Connectors\n\texcept:\n\t\ttry:\n\t\t\tconnectors = element.ConnectorManager.Connectors\n\t\texcept:\t\t\t\n\t\t\tconnectors = []\n\tlistout.append([x for x in connectors])\n\n\n#Assign your output to the OUT variable.\nif toggle:\n\tOUT = connectors\nelse:\n\tOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "91405a3d57994b4ab58d4ec2ffa65dae",
+      "Inputs": [
+        {
+          "Id": "d3e1941b27704d138a3f88f913fc9b03",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "4641cea6246a4750b77bfe42200e1f52",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "c8eecda63cef4b98951d478cc29dd5e0",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "ee21811a5e4844dfba492ca0e1ff6d63",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Connectors",
+      "Id": "fdce0446205e4ec3a5656a9b8c58af69",
+      "Inputs": [
+        {
+          "Id": "a5a32888b1474b309775a7d1483ffe8f",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "4641cea6246a4750b77bfe42200e1f52",
+      "End": "a5a32888b1474b309775a7d1483ffe8f",
+      "Id": "45a66c3f1ab34d88abd217afce1bc6d9"
+    },
+    {
+      "Start": "ee21811a5e4844dfba492ca0e1ff6d63",
+      "End": "d3e1941b27704d138a3f88f913fc9b03",
+      "Id": "1d3e34e4e79f443caf378053425bfae3"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python: Connector",
+        "Id": "91405a3d57994b4ab58d4ec2ffa65dae",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 573.0,
+        "Y": 334.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "c8eecda63cef4b98951d478cc29dd5e0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 280.0,
+        "Y": 381.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "fdce0446205e4ec3a5656a9b8c58af69",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 771.0,
+        "Y": 333.0
+      }
+    ],
+    "Annotations": [],
+    "X": -271.60383587725426,
+    "Y": -254.51911681525786,
+    "Zoom": 1.3775833525586676
+  }
+}

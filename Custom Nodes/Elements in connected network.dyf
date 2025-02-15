@@ -1,0 +1,215 @@
+{
+  "Uuid": "c9510c48-91da-4f4c-970d-c1ed4ded835c",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Returns all elements that are physically connected to the input element",
+  "Name": "Elements in connected network",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "b52f5cd0e2be47f2a44604bc7e578861",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "384dee3222924eb393c28b4e1e4a7bfa",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "network",
+      "Id": "00b5e047c67f43b1aa0fe78e91cfcda7",
+      "Inputs": [
+        {
+          "Id": "f8b56cc8810e41218dc22948512c6c96",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nimport sys\npyt_path = r'C:\\Program Files (x86)\\IronPython 2.7\\Lib'\nsys.path.append(pyt_path)\nimport System\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nimport collections\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0],list):\n\tconnector = UnwrapElement(IN[0])\n\ttoggle = 0\nelse:\n\tconnector = [UnwrapElement(IN[0])]\n\ttoggle = 1\n\t\nbool = IN[1]\n\t\t\ndef nextElements(elem):\n\tlistout = []\n\tif elem.GetType() == Connector:\n\t\tconn = elem\n\t\tfor c in conn.AllRefs:\n\t\t\tif c.Owner.Id.Equals(elem.Owner.Id):\n\t\t\t\tcontinue\n\t\t\telif isinstance(c.Owner,MEPSystem):\n\t\t\t\tcontinue\n\t\t\telse:\n\t\t\t\tnewelem = c.Owner\n\t\t\tlistout.append(newelem)\n\t\treturn listout\n\ttry:\n\t\tconnectors = elem.ConnectorManager.Connectors\n\texcept:\n\t\tconnectors = elem.MEPModel.ConnectorManager.Connectors\n\tfor conn in connectors:\n\t\tfor c in conn.AllRefs:\t\t\t\n\t\t\tif c.Owner.Id.Equals(elem.Id):\n\t\t\t\tcontinue\n\t\t\telif isinstance(c.Owner,MEPSystem):\n\t\t\t\tcontinue\n\t\t\telif c.Owner.Id.Equals(ownerId):\n\t\t\t\tcontinue\n\t\t\telse:\n\t\t\t\tnewelem = c.Owner\n\t\t\tlistout.append(newelem)\n\treturn listout\n\ndef nextElementsWithOwner(elem):\n\tlistout = []\n\tif elem.GetType() == Connector:\n\t\tconn = elem\n\t\tfor c in conn.AllRefs:\n\t\t\tif c.Owner.Id.Equals(elem.Owner.Id):\n\t\t\t\tcontinue\n\t\t\telif isinstance(c.Owner,MEPSystem):\n\t\t\t\tcontinue\n\t\t\telse:\n\t\t\t\tnewelem = c.Owner\n\t\t\tlistout.append(newelem)\n\t\treturn listout\n\ttry:\n\t\tconnectors = elem.ConnectorManager.Connectors\n\texcept:\n\t\tconnectors = elem.MEPModel.ConnectorManager.Connectors\n\tfor conn in connectors:\n\t\tfor c in conn.AllRefs:\t\t\t\n\t\t\tif c.Owner.Id.Equals(elem.Id):\n\t\t\t\tcontinue\n\t\t\telif isinstance(c.Owner,MEPSystem):\n\t\t\t\tcontinue\n\t\t\telse:\n\t\t\t\tnewelem = c.Owner\n\t\t\tlistout.append(newelem)\n\treturn listout\n\t\ndef collector(elem):\n\tcont = 0\n\telements = nextElements(elem)\n\tfor x in elements:\n\t\tif x.Id in lookup:\n\t\t\tcont += 1\n\t\telse:\n\t\t\titem = doc.GetElement(x.Id)\n\n\t\t\tlookup[x.Id] = item\n\t\t\tcollector(x)\n\tif cont == len(elements):\n\t\treturn elem\n\t\t\ndef collectorWithOwner(elem):\n\tcont = 0\n\telements = nextElementsWithOwner(elem)\n\tfor x in elements:\n\t\tif x.Id in lookup:\n\t\t\tcont += 1\n\t\telse:\n\t\t\titem = doc.GetElement(x.Id)\n\n\t\t\tlookup[x.Id] = item\n\t\t\tcollectorWithOwner(x)\n\tif cont == len(elements):\n\t\treturn elem\n\t\t\n\nlistout = []\nif bool:\n\tfor x in connector:\n\t\tlookup = collections.OrderedDict()\n\t\tcollectorWithOwner(x)\n\t\tlistout.append(lookup.Values)\nelse:\n\tfor x in connector:\n\t\tlookup = collections.OrderedDict()\n\t\tif x.GetType() == Connector:\n\t\t\townerId = x.Owner.Id\n\t\telse:\n\t\t\townerId = x.Id\n\t\tcollector(x)\n\t\tlistout.append(lookup.Values)\n\n#Assign your output to the OUT variable.\nif toggle:\n\tOUT = lookup.Values\nelse:\n\tOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "d29281c74d7842e09b10056a48aa3661",
+      "Inputs": [
+        {
+          "Id": "7b309e3a86344ac49812cd195895e84b",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "94731905f7014a4ca65e4b832e8fa4cd",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "e3885b571f484ad999828ac4aad48e16",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "IncludeInputElement",
+        "TypeName": "bool",
+        "TypeRank": 0,
+        "DefaultValue": "true",
+        "Description": ""
+      },
+      "Id": "b52f2c27f73b407ba347056ab8c2c954",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "39b93afecddd44b7b76259f8936ebaac",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "384dee3222924eb393c28b4e1e4a7bfa",
+      "End": "7b309e3a86344ac49812cd195895e84b",
+      "Id": "3db3972b578a4fceb122ea2424e4e8e6"
+    },
+    {
+      "Start": "e3885b571f484ad999828ac4aad48e16",
+      "End": "f8b56cc8810e41218dc22948512c6c96",
+      "Id": "1217b6ab41d740cb851cb27fa532c3e4"
+    },
+    {
+      "Start": "39b93afecddd44b7b76259f8936ebaac",
+      "End": "94731905f7014a4ca65e4b832e8fa4cd",
+      "Id": "8af13cb5938342e594f01ed50552dab3"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.3.0.5885",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "b52f5cd0e2be47f2a44604bc7e578861",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 16.199105429593658,
+        "Y": 296.71433135563296
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "00b5e047c67f43b1aa0fe78e91cfcda7",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 552.0,
+        "Y": 259.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "d29281c74d7842e09b10056a48aa3661",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 307.49513911937845,
+        "Y": 324.49514750317866
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "b52f2c27f73b407ba347056ab8c2c954",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -86.786414685660475,
+        "Y": 401.343043916176
+      }
+    ],
+    "Annotations": [],
+    "X": 164.61953197323123,
+    "Y": -86.57902625778604,
+    "Zoom": 1.1375820522947415
+  }
+}

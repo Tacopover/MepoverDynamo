@@ -1,0 +1,170 @@
+{
+  "Uuid": "2379a1fc-b817-418c-b4b4-e482ccbf295e",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Returns all connected elements down the duct network",
+  "Name": "Duct_Downstream_Components",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nimport sys\npyt_path = r'C:\\Program Files (x86)\\IronPython 2.7\\Lib'\nsys.path.append(pyt_path)\nimport System\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nimport collections\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0],list):\n\tconnector = UnwrapElement(IN[0])\n\ttoggle = 0\nelse:\n\tconnector = [UnwrapElement(IN[0])]\n\ttoggle = 1\n\t\n\t\t\ndef nextElements(elem):\n\tlistout = []\n\tif elem.GetType() == Connector:\n\t\tconn = elem\n\t\tfor c in conn.AllRefs:\n\t\t\tif c.Owner.Id.Equals(elem.Owner.Id):\n\t\t\t\tcontinue\n\t\t\telif isinstance(c.Owner,MEPSystem):\n\t\t\t\tcontinue\n\t\t\telse:\n\t\t\t\tnewelem = c.Owner\n\t\t\tlistout.append(newelem)\n\t\treturn listout\n\ttry:\n\t\tconnectors = elem.ConnectorManager.Connectors\n\texcept:\n\t\tconnectors = elem.MEPModel.ConnectorManager.Connectors\n\tfor conn in connectors:\n\t\tfor c in conn.AllRefs:\n\t\t\tif c.Domain == Domain.DomainUndefined:\n\t\t\t\tcontinue\t\t\t\n\t\t\tif c.Owner.Id.Equals(elem.Id):\n\t\t\t\tcontinue\n\t\t\telif isinstance(c.Owner,MEPSystem):\n\t\t\t\tcontinue\n\t\t\telif c.Owner.Id.Equals(ownerId):\n\t\t\t\tcontinue\n\t\t\telif c.Direction == direction:\n\t\t\t\tcontinue\n\t\t\telse:\n\t\t\t\tnewelem = c.Owner\n\t\t\tlistout.append(newelem)\n\treturn listout\n\n\t\ndef collector(elem):\n\tcont = 0\n\telements = nextElements(elem)\n\tfor x in elements:\n\t\tif x.Id in lookup:\n\t\t\tcont += 1\n\t\telse:\n\t\t\titem = doc.GetElement(x.Id)\n\n\t\t\tlookup[x.Id] = item\n\t\t\tcollector(x)\n\tif cont == len(elements):\n\t\treturn elem\n\t\t\n\n\t\t\n\nlistout = []\n\nfor x in connector:\n\tlookup = collections.OrderedDict()\n\tif x.GetType() == Connector:\n\t\townerId = x.Owner.Id\n\telse:\n\t\townerId = x.Id\n\t\tsysname = x.get_Parameter(BuiltInParameter.RBS_SYSTEM_CLASSIFICATION_PARAM).AsString()\n\t\tif \"Return Air\" in sysname:\n\t\t\tdirection = FlowDirectionType.In\n\t\telse:\n\t\t\tdirection = FlowDirectionType.Out\n\tcollector(x)\n\tlistout.append(lookup.Values)\n\n#Assign your output to the OUT variable.\nif toggle:\n\tOUT = lookup.Values\nelse:\n\tOUT = listout",
+      "Engine": "IronPython2",
+      "VariableInputPorts": true,
+      "Id": "46337c3e7e714e01a889eb16b54eeb6b",
+      "Inputs": [
+        {
+          "Id": "564712f1ba4843e0a62f2280c14da467",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "cf0704abd796495b88bf61bd4c4913f0",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "DuctElement",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "d8f313fb5cdf48729b51e29666b393c2",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "f2bbb313a9044fda83d46b2e216f61c2",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "elements",
+      "Id": "ba0f4b8e286e477d9fcbfc3e7ded2566",
+      "Inputs": [
+        {
+          "Id": "23519d4c96e8416f9526802d372a85d0",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "cf0704abd796495b88bf61bd4c4913f0",
+      "End": "23519d4c96e8416f9526802d372a85d0",
+      "Id": "44020f8729334742933f1bd956aa03b6",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "f2bbb313a9044fda83d46b2e216f61c2",
+      "End": "564712f1ba4843e0a62f2280c14da467",
+      "Id": "c9b5c024ffb14c61b579c7c6d90513dd",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Author": "None provided",
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.13.1.3887",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Name": "Python Script",
+        "ShowGeometry": true,
+        "Id": "46337c3e7e714e01a889eb16b54eeb6b",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 390.66666666666657,
+        "Y": 265.33333333333331
+      },
+      {
+        "Name": "Input",
+        "ShowGeometry": true,
+        "Id": "d8f313fb5cdf48729b51e29666b393c2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 102.66666666666669,
+        "Y": 260.66666666666663
+      },
+      {
+        "Name": "Output",
+        "ShowGeometry": true,
+        "Id": "ba0f4b8e286e477d9fcbfc3e7ded2566",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 648.0,
+        "Y": 268.66666666666669
+      }
+    ],
+    "Annotations": [],
+    "X": -67.333333333333428,
+    "Y": -36.666666666666643,
+    "Zoom": 1.0
+  }
+}

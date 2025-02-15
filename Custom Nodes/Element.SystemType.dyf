@@ -1,0 +1,165 @@
+{
+  "Uuid": "9bd99db2-c152-4a73-a004-146d2ce6d7d7",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Systems",
+  "Description": "Returns the mechanical or plumbing System Type",
+  "Name": "Element.SystemType",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n#The inputs to this node will be stored as a list in the IN variables.\nif isinstance(IN[0],list):\n\ttoggle = 0\n\telement = UnwrapElement(IN[0])\nelse:\n\ttoggle = 1\n\telement = [UnwrapElement(IN[0])]\n\ndef getSystem(elem):\n\ttry:\n\t\tsystem = elem.MEPSystem.GetTypeId()\n\t\treturn doc.GetElement(system)\n\texcept:\t\t\n\t\ttry:\n\t\t\tconnectors = elem.ConnectorManager.Connectors\n\t\texcept:\n\t\t\tconnectors = elem.MEPModel.ConnectorManager.Connectors\n\t\t\n\t\tif connectors.Size < 2:\t\n\t\t\tfor conn in connectors:\n\t\t\t\tconnector = conn\n\t\t\t\tbreak\n\t\t\tsystypeId = connector.MEPSystem.GetTypeId()\n\t\t\treturn doc.GetElement(systypeId)\n\t\telse:\n\t\t\tsystems = []\n\t\t\tids = set()\n\t\t\tfor conn in connectors:\n\t\t\t\ttry:\n\t\t\t\t\tif conn.MEPSystem.Id not in ids:\n\t\t\t\t\t\tids.add(conn.MEPSystem.Id)\n\t\t\t\t\t\tsystypeId = conn.MEPSystem.GetTypeId()\n\t\t\t\t\t\tsystems.append(doc.GetElement(systypeId))\n\t\t\t\texcept:\n\t\t\t\t\tpass\n\t\t\treturn systems\n\nlistout = []\t\nfor x in element:\n\ttry:\n\t\tsystem = getSystem(x)\n\t\tif isinstance(system, list) and len(system) == 1:\n\t\t\tlistout.append(system[0])\n\t\telse:\n\t\t\tlistout.append(system)\n\texcept:\n\t\tlistout.append(None)\n#Assign your output to the OUT variable.\nif toggle:\n\tOUT = system\nelse:\n\tOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "678fa93cc4b74ae881fa952e524a02b4",
+      "Inputs": [
+        {
+          "Id": "da368f81d4374fd2b6efab6c056b46ea",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "3135d128cc394aa1989abfed3cb670df",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "c0ca6b5866034f09af45d506199a4a81",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "fd7be8783fb54500b5ae5b723964d1bb",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "SystemType",
+      "Id": "9b6a91ce91984017afd873c69dad1c59",
+      "Inputs": [
+        {
+          "Id": "c08ac4cfd5964baf9ced65a1023b3ed4",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "3135d128cc394aa1989abfed3cb670df",
+      "End": "c08ac4cfd5964baf9ced65a1023b3ed4",
+      "Id": "3fb0b71dcd6544ea8068be35c36e5bed"
+    },
+    {
+      "Start": "fd7be8783fb54500b5ae5b723964d1bb",
+      "End": "da368f81d4374fd2b6efab6c056b46ea",
+      "Id": "f8f70de94bcd49dda7b6c6e396eea93d"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "678fa93cc4b74ae881fa952e524a02b4",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 410.458661341867,
+        "Y": 355.082677316266
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "c0ca6b5866034f09af45d506199a4a81",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 256.0,
+        "Y": 361.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "9b6a91ce91984017afd873c69dad1c59",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 600.0,
+        "Y": 352.0
+      }
+    ],
+    "Annotations": [],
+    "X": -149.0,
+    "Y": -44.0,
+    "Zoom": 1.0
+  }
+}

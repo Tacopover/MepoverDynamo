@@ -1,0 +1,315 @@
+{
+  "Uuid": "1aeb9ac2-54f1-4786-b432-6208fdb09eb9",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Creates conduits by Line, ConduitType, Level and Diameter",
+  "Name": "Conduit.ByLines",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\ntoggle = \"\"\n\nif isinstance(IN[0], list):\n\tlines = IN[0]\nelse:\n\tlines = [IN[0]]\nFirstPoint = [x.StartPoint for x in lines]\nSecondPoint = [x.EndPoint for x in lines]\nconduittype = UnwrapElement(IN[1])\nif isinstance(IN[2], list):\n\tlevel = UnwrapElement(IN[2])\n\ttoggle += \"0\"\nelse:\n\tlevel = [UnwrapElement(IN[2])]\nif isinstance(IN[3], list):\n\tdiameter = IN[3]\n\ttoggle += \"1\"\nelse:\n\tdiameter = [IN[3]]\n\nelements = []\n\nif toggle == \"\":\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,x in enumerate(FirstPoint):\n\t\tconduit = Autodesk.Revit.DB.Electrical.Conduit.Create(doc,conduittype.Id,FirstPoint[i].ToXyz(),SecondPoint[i].ToXyz(),level[0].Id)\n\t\t\n\t\tparam = conduit.get_Parameter(BuiltInParameter.RBS_CONDUIT_DIAMETER_PARAM)\n\t\tparam.SetValueString(diameter[0].ToString())\n\n\t\telements.append(conduit.ToDSType(False))\n\n\tTransactionManager.Instance.TransactionTaskDone()\n\nelif toggle == \"0\":\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,x in enumerate(FirstPoint):\n\t\tconduit = Autodesk.Revit.DB.Electrical.Conduit.Create(doc,conduittype.Id,FirstPoint[i].ToXyz(),SecondPoint[i].ToXyz(),level[i].Id)\n\t\t\n\t\tparam = conduit.get_Parameter(BuiltInParameter.RBS_CONDUIT_DIAMETER_PARAM)\n\t\tparam.SetValueString(diameter[0].ToString())\n\n\t\telements.append(conduit.ToDSType(False))\n\n\tTransactionManager.Instance.TransactionTaskDone()\n\nelif toggle == \"1\":\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,x in enumerate(FirstPoint):\n\t\tconduit = Autodesk.Revit.DB.Electrical.Conduit.Create(doc,conduittype.Id,FirstPoint[i].ToXyz(),SecondPoint[i].ToXyz(),level[0].Id)\n\t\t\n\t\tparam = conduit.get_Parameter(BuiltInParameter.RBS_CONDUIT_DIAMETER_PARAM)\n\t\tparam.SetValueString(diameter[i].ToString())\n\n\t\telements.append(conduit.ToDSType(False))\n\n\tTransactionManager.Instance.TransactionTaskDone()\n\t\nelif toggle == \"01\":\n\tTransactionManager.Instance.EnsureInTransaction(doc)\n\tfor i,x in enumerate(FirstPoint):\n\t\tconduit = Autodesk.Revit.DB.Electrical.Conduit.Create(doc,conduittype.Id,FirstPoint[i].ToXyz(),SecondPoint[i].ToXyz(),level[i].Id)\n\t\t\n\t\tparam = conduit.get_Parameter(BuiltInParameter.RBS_CONDUIT_DIAMETER_PARAM)\n\t\tparam.SetValueString(diameter[i].ToString())\n\n\t\telements.append(conduit.ToDSType(False))\n\n\tTransactionManager.Instance.TransactionTaskDone()\n\nOUT = elements\n",
+      "VariableInputPorts": true,
+      "Id": "8aeddde935614cd7b42c343fb99386f6",
+      "Inputs": [
+        {
+          "Id": "c959ff1f98f545809a4c9d766b27f642",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "84f99c70fbb24d9da327c774564c635c",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "3ad750eca3e24721a81fb41b950f176e",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "8d3ea955df734fb1b2cb1789ac8f0b58",
+          "Name": "IN[3]",
+          "Description": "Input #3",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "6944d9e9071e486eabff69dbb55a7ebd",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Lines",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "804f4ee9787a4a48b5fa170ff8bb6255",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "6103b0dcd7ee4097b7d0f3b0ed29a13c",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "ConduitType",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "6f8cfd7a42754b3bb7041c6248b109b6",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "e36a416e20c248d88ad3761c6c71f6f0",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "level",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "a0406a2301a648808be1c0d6a7467a4d",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "3674cc20a6e7417ea3a211da956d665a",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Diameter",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "96a3c3e94bfb4bb28c657263b3f9a8ed",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "ee6b7e9c49314bd893f5c7646849e6fd",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Conduits",
+      "Id": "dc939297aceb4b5d8d7ab1f91b951e7d",
+      "Inputs": [
+        {
+          "Id": "e914b44ca3c14b41b36de39087d7d368",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "6944d9e9071e486eabff69dbb55a7ebd",
+      "End": "e914b44ca3c14b41b36de39087d7d368",
+      "Id": "56c7ca82e26b4071a3ce040d708b298d"
+    },
+    {
+      "Start": "6103b0dcd7ee4097b7d0f3b0ed29a13c",
+      "End": "c959ff1f98f545809a4c9d766b27f642",
+      "Id": "d0c97eb4090049c9858ff898d951d4bc"
+    },
+    {
+      "Start": "e36a416e20c248d88ad3761c6c71f6f0",
+      "End": "84f99c70fbb24d9da327c774564c635c",
+      "Id": "d9b5a09478ec42bab03dbcb6c8734e98"
+    },
+    {
+      "Start": "3674cc20a6e7417ea3a211da956d665a",
+      "End": "3ad750eca3e24721a81fb41b950f176e",
+      "Id": "85d5926ad04743128b80db689282efdb"
+    },
+    {
+      "Start": "ee6b7e9c49314bd893f5c7646849e6fd",
+      "End": "8d3ea955df734fb1b2cb1789ac8f0b58",
+      "Id": "a8ce11ac25f345d69c6bfcd1b4122a72"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "8aeddde935614cd7b42c343fb99386f6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 363.0,
+        "Y": 249.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "804f4ee9787a4a48b5fa170ff8bb6255",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 112.0,
+        "Y": 214.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "6f8cfd7a42754b3bb7041c6248b109b6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 112.833513561936,
+        "Y": 291.979460337977
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "a0406a2301a648808be1c0d6a7467a4d",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 120.0,
+        "Y": 353.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "96a3c3e94bfb4bb28c657263b3f9a8ed",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 110.73837845447,
+        "Y": 424.163242323221
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "dc939297aceb4b5d8d7ab1f91b951e7d",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 550.0,
+        "Y": 250.0
+      }
+    ],
+    "Annotations": [],
+    "X": -34.7425881120178,
+    "Y": -86.681838482938,
+    "Zoom": 0.97676875
+  }
+}

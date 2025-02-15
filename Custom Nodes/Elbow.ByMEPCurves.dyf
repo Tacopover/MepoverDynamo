@@ -1,0 +1,215 @@
+{
+  "Uuid": "32e981ca-79e5-48f1-a9e2-ca299d7ec881",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Takes in a list of MEPCurves (pipe, duct, cable tray, conduit)  and will attempt to create elbows where possible. A margin can be entered for max distance between connectors",
+  "Name": "Elbow.ByMEPCurves",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\n\npipes = UnwrapElement(IN[0])\nmargin = IN[1]\n\nfittings = []\nconnectors = {}\nconnlist = []\n\nfor pipe in pipes:\n\tconns = pipe.ConnectorManager.Connectors\n\tfor conn in conns:\n\t\tif conn.IsConnected:\n\t\t\tcontinue\n\t\tconnectors[conn] = None\n\t\tconnlist.append(conn)\n\nfor k in connectors.keys():\n\tmindist = 1000000\n\tclosest = None\n\tfor conn in connlist:\n\t\tif conn.Owner.Id.Equals(k.Owner.Id):\n\t\t\tcontinue\n\t\tdist = k.Origin.DistanceTo(conn.Origin)\n\t\tif dist < mindist:\n\t\t\tmindist = dist\n\t\t\tclosest = conn\n\tif mindist > margin:\n\t\tcontinue\n\tconnectors[k] = closest\n\tconnlist.remove(closest)\n\ttry:\n\t\tdel connectors[closest]\n\texcept:\n\t\tpass\n\n\nfor k,v in connectors.items():\n\tTransactionManager.Instance.EnsureInTransaction(doc)\t\t\n\ttry:\n\t\tfitting = doc.Create.NewElbowFitting(k,v)\n\t\tfittings.append(fitting.ToDSType(False))\n\texcept:\n\t\tpass\n\tTransactionManager.Instance.TransactionTaskDone()\n\nOUT = fittings",
+      "VariableInputPorts": true,
+      "Id": "685b341e2b854647a1e9067a7929f8db",
+      "Inputs": [
+        {
+          "Id": "25443456801b4fa1a62a1f49e0c95b08",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "d095bb4da3ef4f8f8c3231b87413723f",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "432e77c61626443d955755132be52660",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "MEPCurves",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "4a5e3772ec2e44a2bdcc1beba7176fa9",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "c8535ec7eee64432ab34874056e7dbdd",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "Elbows",
+      "Id": "2bb2066d0feb4cebaf289b6579984b41",
+      "Inputs": [
+        {
+          "Id": "fe97494e49e24667bb018ffb9d6eceef",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "Margin",
+        "TypeName": "int",
+        "TypeRank": 0,
+        "DefaultValue": "1",
+        "Description": ""
+      },
+      "Id": "7813834081814267ba033166e50d64b6",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "6c90fda2fde84813900eb258c5cbde5f",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "432e77c61626443d955755132be52660",
+      "End": "fe97494e49e24667bb018ffb9d6eceef",
+      "Id": "c3eccde81497475084876deaece1bdaa"
+    },
+    {
+      "Start": "c8535ec7eee64432ab34874056e7dbdd",
+      "End": "25443456801b4fa1a62a1f49e0c95b08",
+      "Id": "24d65182cba941819c87d8e4089ee789"
+    },
+    {
+      "Start": "6c90fda2fde84813900eb258c5cbde5f",
+      "End": "d095bb4da3ef4f8f8c3231b87413723f",
+      "Id": "24bf888814de4f39a2cd3e3c2f829c3c"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "685b341e2b854647a1e9067a7929f8db",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 302.0,
+        "Y": 279.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "4a5e3772ec2e44a2bdcc1beba7176fa9",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 44.0,
+        "Y": 273.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "2bb2066d0feb4cebaf289b6579984b41",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 536.0,
+        "Y": 291.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "7813834081814267ba033166e50d64b6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -60.0,
+        "Y": 365.0
+      }
+    ],
+    "Annotations": [],
+    "X": 28.6525,
+    "Y": -4.09,
+    "Zoom": 0.8425
+  }
+}

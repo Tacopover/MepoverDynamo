@@ -1,0 +1,265 @@
+{
+  "Uuid": "796a22bd-b5b4-4f4a-8a0a-a5e550c244c1",
+  "IsCustomNode": true,
+  "Category": "MEPover.Revit.Elements",
+  "Description": "Connects terminal elements into pipes or ducts. An optional margin value can be given to define the curve offset length from the terminal if applicable.",
+  "Name": "Element.ConnectInto",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nif isinstance(IN[0], list):\n\tpipe1 = UnwrapElement(IN[0])\nelse:\n\tpipe1 = [UnwrapElement(IN[0])]\n\t\nif isinstance(IN[1], list):\n\tpipe2 = UnwrapElement(IN[1])\nelse:\n\tpipe2 = [UnwrapElement(IN[1])]\n\t\noffset = IN[2]\n\t\ncollector = FilteredElementCollector(doc)\npipetypes = collector.OfClass(Plumbing.PipeType).ToElements()\npipetypeIds = [x.Id for x in pipetypes]\n\ncollector2 = FilteredElementCollector(doc)\nducttypes = collector2.OfClass(Mechanical.DuctType).ToElements()\nducttypeIds = [x.Id for x in ducttypes]\n\t\ndef createPipe(point1,point2,systype,pipetype,level,radius):\n\tpipe = Plumbing.Pipe.Create(doc,systype,pipetype,level,point1,point2)\n\t\t\n\tparam = pipe.get_Parameter(BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)\n\tdiameter = radius * 2\n\tparam.Set(diameter)\n\treturn pipe\n\t\ndef createDuctRound(point1,point2,systype,pipetype,level,radius):\n\tduct = Mechanical.Duct.Create(doc,systype,pipetype,level,point1,point2)\n\t\t\n\tparam = duct.get_Parameter(BuiltInParameter.RBS_CURVE_DIAMETER_PARAM)\n\tdiameter = radius * 2\n\tparam.Set(diameter)\n\treturn duct\n\ndef closest_point(point1,pipe):\n\tp2line = pipe.Location.Curve\n\tstart = p2line.GetEndPoint(0)\n\tend = p2line.GetEndPoint(1)\n\tif point1.DistanceTo(start) < point1.DistanceTo(end):\n\t\treturn end\n\telse:\n\t\treturn start\n\ndef closest_connectors(pipe1, pipe2):\n\ttry:\n\t\tconn1 = pipe1.ConnectorManager.UnusedConnectors\n\texcept:\n\t\tconn1 = pipe1.MEPModel.ConnectorManager.UnusedConnectors\n\ttry:\n\t\tconn2 = pipe2.ConnectorManager.UnusedConnectors\n\texcept:\n\t\tconn2 = pipe2.MEPModel.ConnectorManager.UnusedConnectors\n\t\n\tdist = 100000000\n\tconnset = None\n\tfor c in conn1:\n\t\tfor d in conn2:\t\t\t\n\t\t\tconndist = c.Origin.DistanceTo(d.Origin)\n\t\t\tif conndist < dist:\n\t\t\t\tdist = conndist\n\t\t\t\tconnset = [c,d]\n\treturn connset\n\t\ndef closest_connectors_base(pipe1, pipe2):\n\ttry:\n\t\tconn1 = pipe1.ConnectorManager.UnusedConnectors\n\texcept:\n\t\tconn1 = pipe1.MEPModel.ConnectorManager.UnusedConnectors\n\ttry:\n\t\tconn2 = pipe2.ConnectorManager.UnusedConnectors\n\texcept:\n\t\tconn2 = pipe2.MEPModel.ConnectorManager.UnusedConnectors\n\t\n\tdist = 100000000\n\tconnset = None\n\tfor c in conn1:\n\t\ttry:\n\t\t\tsys1 = c.PipeSystemType\n\t\texcept:\n\t\t\tsys1 = c.DuctSystemType\n\t\tfor d in conn2:\t\t\t\n\t\t\ttry:\n\t\t\t\tsys2 = d.PipeSystemType\n\t\t\texcept:\n\t\t\t\tsys2 = d.DuctSystemType\n\t\t\tif sys1 != sys2:\n\t\t\t\tcontinue\n\t\t\tconndist = c.Origin.DistanceTo(d.Origin)\n\t\t\tif conndist < dist:\n\t\t\t\tdist = conndist\n\t\t\t\tconnset = [c,d]\n\treturn connset\n\n\n\t\t\ndef getBasis(element,element2):\n\ttry:\n\t\tconnMan = element.ConnectorManager\n\texcept:\n\t\tconnMan = element.MEPModel.ConnectorManager\n\tif connMan.UnusedConnectors.Size > 1:\n\t\tconnset = closest_connectors_base(element,element2)\n\t\treturn connset[0].CoordinateSystem.BasisZ,connset[0].Origin,connset[0].Radius\n\telse:\n\t\tconnectors = connMan.Connectors\n\t\tfor conn in connectors:\n\t\t\tif conn.IsConnected == False:\n\t\t\t\topenconn = conn\n\t\t\t\tbreak\n\t\treturn openconn.CoordinateSystem.BasisZ,openconn.Origin,openconn.Radius\n\t\nlistout = []\nTransactionManager.Instance.EnsureInTransaction(doc)\nfor p1,p2 in zip(pipe1,pipe2):\n\tif p1.GetType() == Plumbing.Pipe or p1.GetType() == Mechanical.Duct:\n\t\tptemp = p1\n\t\tp1 = p2\n\t\tp2 = ptemp\n\t\n\tbasis1 = getBasis(p1,p2)\n\tbasis2 = getBasis(p2,p1)\n\t\n\tradius1 = basis1[2]\n\tradius2 = basis2[2]\n\t\n\t#create points for duct/pipe creation\n\tline1 = Line.CreateUnbound(basis1[1],basis1[0])\n\tif abs(basis1[0].Z) == 1 and abs(basis2[0].Z) == 0:\n\t\tpoint1 = XYZ(basis1[1].X,basis1[1].Y,basis2[1].Z)\n\telse:\n\t\tif offset == 0:\n\t\t\tpoint1 = line1.Evaluate(radius1*5,False)\n\t\telse:\n\t\t\tpoint1 = line1.Evaluate(offset/304.8,False)\n\t\n\tline2 = Line.CreateUnbound(basis2[1],basis2[0])\n\t\n\tpoint3 = None\n\tprojection = line2.Project(basis1[1])\n\tif basis1[0].Z == 0 and basis2[0].Z >= 0:\n\t\tpoint2 = XYZ(point1.X,point1.Y,basis2[1].Z)\n\t\tproject2 = line2.Project(point2)\n\t\tif project2.Distance > 1/304.8:\n\t\t\tpoint3 = project2.XYZPoint\n\telse:\n\t\tpoint2 = projection.XYZPoint\n\t\n\t#determine pipe or duct as input and get pipe and system type\n\tlevel = p2.get_Parameter(BuiltInParameter.RBS_START_LEVEL_PARAM)\n\tif level == None:\n\t\tlevel = p1.get_Parameter(BuiltInParameter.RBS_START_LEVEL_PARAM).AsElementId()\n\telse:\n\t\tlevel = level.AsElementId()\n\t\t\n\tif p1.GetType() == Plumbing.Pipe or p2.GetType() == Plumbing.Pipe:\n\t\ttry:\n\t\t\tpipetype = p2.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsElementId()\n\t\t\tif pipetype not in pipetypeIds:\n\t\t\t\tpipetype = p1.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsElementId()\n\n\t\t\tsystype = p2.get_Parameter(BuiltInParameter.RBS_PIPING_SYSTEM_TYPE_PARAM)\n\t\t\tif systype == None or systype.AsValueString() == \"Undefined\":\n\t\t\t\tsystype = p1.get_Parameter(BuiltInParameter.RBS_PIPING_SYSTEM_TYPE_PARAM).AsElementId()\n\t\t\telse:\n\t\t\t\tsystype = systype.AsElementId()\n\t\t\t\t\n\t\t\t#p2 can connect to p1 directly\t\n\t\t\tif projection.Distance < 1/304.8:\n\t\t\t\tendpoint = closest_point(basis1[1],p2)\n\t\t\t\tp2.Location.Curve = Line.CreateBound(endpoint,basis1[1])\n\t\t\t\tif radius1 != radius2:\n\t\t\t\t\tconns = closest_connectors(p2,p1)\n\t\t\t\t\tdoc.Create.NewUnionFitting(conns[0],conns[1])\n\t\t\t\telse:\n\t\t\t\t\tconns = closest_connectors(p2,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\telif basis1[0].Z == 1:\n\t\t\t\tpoint1 = XYZ(basis1[1].X,basis1[1].Y,basis2[1].Z)\n\t\t\t\tpipe1 = createPipe(basis1[1],point1,systype,pipetype,level,radius1)\n\t\t\t\tif line2.Project(point1).Distance < 1/304.8:\n\t\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\tconns = closest_connectors(pipe1,p2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\telse:\n\t\t\t\t\tpoint2 = line2.Project(point1).XYZPoint\n\t\t\t\t\tpipe2 = createPipe(point1,point2,systype,pipetype,level,radius1)\n\t\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\tconns = closest_connectors(pipe1,pipe2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\tconns = closest_connectors(pipe2,p2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\telif basis1[0].Z == 0 and basis2[0].Z >= 0:\n\t\t\t\tif point3 == None:\n\t\t\t\t\tpipe1 = createPipe(basis1[1],point1,systype,pipetype,level,radius1)\n\t\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\t\n\t\t\t\t\tpipe2 = createPipe(point1,point2,systype,pipetype,level,radius1)\n\t\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe1,pipe2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe2,p2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\telse:\n\t\t\t\t\tpipe1 = createPipe(basis1[1],point1,systype,pipetype,level,radius1)\n\t\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\t\n\t\t\t\t\tpipe2 = createPipe(point1,point2,systype,pipetype,level,radius1)\n\t\t\t\t\t\n\t\t\t\t\tpipe3 = createPipe(point2, point3, systype, pipetype, level, radius1)\n\t\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe1,pipe2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe2,pipe3)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe3,p2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\t#create pipes and elbows and then connect to p2 with an elbow\n\t\t\telse:\n\t\t\t\tpipe1 = createPipe(basis1[1],point1,systype,pipetype,level,radius1)\n\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\n\t\t\t\tpipe2 = createPipe(point1,point2,systype,pipetype,level,radius1)\n\t\n\t\t\t\tconns = closest_connectors(pipe1,pipe2)\n\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\t\tconns = closest_connectors(pipe2,p2)\n\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\tlistout.append(\"succes\")\n\t\texcept:\n\t\t\tlistout.append(\"failed\")\t\t\n\telse:\n\t\ttry:\n\t\t\tpipetype = p2.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsElementId()\n\t\t\tif pipetype not in ducttypeIds:\n\t\t\t\tpipetype = p1.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsElementId()\n\t\t\t\t\n\t\t\tsystype = p2.get_Parameter(BuiltInParameter.RBS_DUCT_SYSTEM_TYPE_PARAM)\n\t\t\tif systype == None or systype.AsValueString() == \"Undefined\":\n\t\t\t\tsystype = p1.get_Parameter(BuiltInParameter.RBS_DUCT_SYSTEM_TYPE_PARAM).AsElementId()\n\t\t\telse:\n\t\t\t\tsystype = systype.AsElementId()\n\t\t\t\t\n\t\t\t#p2 can connect to p1 directly\t\n\t\t\tif projection.Distance < 1/304.8:\n\t\t\t\tendpoint = closest_point(basis1[1],p2)\n\t\t\t\tp2.Location.Curve = Line.CreateBound(endpoint,basis1[1])\n\t\t\t\tif radius1 != radius2:\n\t\t\t\t\tconns = closest_connectors(p2,p1)\n\t\t\t\t\tdoc.Create.NewUnionFitting(conns[0],conns[1])\n\t\t\t\telse:\n\t\t\t\t\tconns = closest_connectors(p2,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\telif basis1[0].Z == 1:\n\t\t\t\tpoint1 = XYZ(basis1[1].X,basis1[1].Y,basis2[1].Z)\n\t\t\t\tpipe1 = createDuctRound(basis1[1],point1,systype,pipetype,level,radius1)\n\t\t\t\tif line2.Project(point1).Distance < 1/304.8:\n\t\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\tconns = closest_connectors(pipe1,p2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\telse:\n\t\t\t\t\tpoint2 = line2.Project(point1).XYZPoint\n\t\t\t\t\tpipe2 = createDuctRound(point1,point2,systype,pipetype,level,radius1)\n\t\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\tconns = closest_connectors(pipe1,pipe2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\tconns = closest_connectors(pipe2,p2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\telif basis1[0].Z == 0 and basis2[0].Z >= 0:\n\t\t\t\tif point3 == None:\n\t\t\t\t\tpipe1 = createDuctRound(basis1[1],point1,systype,pipetype,level,radius1)\n\t\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\t\n\t\t\t\t\tpipe2 = createDuctRound(point1,point2,systype,pipetype,level,radius1)\n\t\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe1,pipe2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe2,p2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\telse:\n\t\t\t\t\tpipe1 = createDuctRound(basis1[1],point1,systype,pipetype,level,radius1)\n\t\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\t\n\t\t\t\t\tpipe2 = createDuctRound(point1,point2,systype,pipetype,level,radius1)\n\t\t\t\t\t\n\t\t\t\t\tpipe3 = createDuctRound(point2, point3, systype, pipetype, level, radius1)\n\t\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe1,pipe2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe2,pipe3)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\t\n\t\t\t\t\tconns = closest_connectors(pipe3,p2)\n\t\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\t#create pipes and elbows and then connect to p2 with an elbow\n\t\t\telse:\n\t\t\t\tpipe1 = createDuctRound(basis1[1],point1,systype,pipetype,level,radius1)\n\t\t\t\tconns = closest_connectors(pipe1,p1)\n\t\t\t\tconns[0].ConnectTo(conns[1])\n\t\t\t\t\n\t\t\t\tpipe2 = createDuctRound(point1,point2,systype,pipetype,level,radius1)\n\t\n\t\t\t\tconns = closest_connectors(pipe1,pipe2)\n\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\t\t\n\t\t\t\tconns = closest_connectors(pipe2,p2)\n\t\t\t\tdoc.Create.NewElbowFitting(conns[0],conns[1])\n\t\t\tlistout.append(\"succes\")\n\t\texcept:\n\t\t\tlistout.append(\"failed\")\nTransactionManager.Instance.TransactionTaskDone()\n\nOUT = listout",
+      "VariableInputPorts": true,
+      "Id": "83a070a0a26a455e9ba8308051742c94",
+      "Inputs": [
+        {
+          "Id": "8d9fbace21d6427196a3cd7bfd2108fd",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "97232ca2ff304d98884f4c57712e42f1",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "ea7b32f93d134351bf9db3cd29a05ef9",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "71057d1258b847b2a3f4916a063e9f40",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded IronPython script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "0bdcfa0546234933a5b76b59a06d98ba",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "1627310a622644a5a60d30258a2f6605",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "element",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "6d322c61122440f686b6500399b4e7b1",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "3bd803db028f42719312de4e7dc7e807",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "offset",
+        "TypeName": "int",
+        "TypeRank": 0,
+        "DefaultValue": "0",
+        "Description": ""
+      },
+      "Id": "98035b0ea3b7446fb2917ebd8cf133bc",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "ad075d398203423e805a53f24fc814d8",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes.\r\n\r\nYou can specify the type and default value for parameter. E.g.,\r\n\r\ninput : var[]..[]\r\nvalue : bool = false"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "report",
+      "Id": "02895d21cb1a4c6b828dcc5f74af7ede",
+      "Inputs": [
+        {
+          "Id": "e9dd95252a094d31821be874ea2f1119",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "71057d1258b847b2a3f4916a063e9f40",
+      "End": "e9dd95252a094d31821be874ea2f1119",
+      "Id": "afef76e154cf4a9c89daee62da438475"
+    },
+    {
+      "Start": "1627310a622644a5a60d30258a2f6605",
+      "End": "8d9fbace21d6427196a3cd7bfd2108fd",
+      "Id": "bd9976ffad8f4789a92c28c7a759b9b7"
+    },
+    {
+      "Start": "3bd803db028f42719312de4e7dc7e807",
+      "End": "97232ca2ff304d98884f4c57712e42f1",
+      "Id": "13a01f9e734f41b69aa2e22f66047d1c"
+    },
+    {
+      "Start": "ad075d398203423e805a53f24fc814d8",
+      "End": "ea7b32f93d134351bf9db3cd29a05ef9",
+      "Id": "84ecbaba01da4873be39baf629650ec2"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.6.1.8786",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Python Script",
+        "Id": "83a070a0a26a455e9ba8308051742c94",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 388.579868449407,
+        "Y": 250.591877233707
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "0bdcfa0546234933a5b76b59a06d98ba",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 167.0,
+        "Y": 223.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "6d322c61122440f686b6500399b4e7b1",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 171.0,
+        "Y": 318.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "98035b0ea3b7446fb2917ebd8cf133bc",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 168.0,
+        "Y": 429.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "02895d21cb1a4c6b828dcc5f74af7ede",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 593.0,
+        "Y": 253.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}
