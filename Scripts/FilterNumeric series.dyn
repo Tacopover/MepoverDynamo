@@ -1,0 +1,570 @@
+{
+  "Uuid": "267bec81-38e6-4469-803f-a65862443f1a",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "FilterNumeric series",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"Max Number of Circuits\";",
+      "Id": "ba5169e436ed4a40b4c2f9924c76b296",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "39deb6db60094c43a36df56790abf95d",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "0;",
+      "Id": "53ae0bde54b540b3af9a188d62239511",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "19b322035c374d20b9300dc5b387143f",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nimport System\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nfrom System.Collections.Generic import List\nval = IN[0]\nsearch = IN[1]\n\nbips = System.Enum.GetValues(BuiltInParameter)\n\nbm = doc.ParameterBindings\nbmlist = bm.ForwardIterator()\nparamId = None\ntestout = []\nwhile bmlist.MoveNext():\n\tbinddef = bmlist.Key\n\ttestout.append(binddef.Name)\n\tif binddef.Name == search:\n\t\tparamId = binddef.Id\n\t\tbreak\n\nparam = None\nif paramId == None:\n\tbiplist = []\n\tfor bip in bips:\n\t\ttry:\n\t\t\tname = LabelUtils.GetLabelFor(bip)\n\t\texcept:\n\t\t\tcontinue\n\t\tif name == search:\n\t\t\tbiplist.append(bip)\n\n\nsharedparamrule = SharedParameterApplicableRule(search)\nevaluator = FilterNumericEquals()\n\nparameter = None\nif paramId == None and len(biplist) == 0:\n\tcoll = FilteredElementCollector(doc)\n\tsharedparams = coll.OfClass(ParameterElement)\n\t\n\tfor param in sharedparams:\n\t\tname = param.GetDefinition().Name\n\t\tif name == search:\n\t\t\tparameter = param\n\t\n\tif parameter != None:\n\t\truleslist = List[FilterRule]()\n\t\tprovider = ParameterValueProvider(parameter.Id)\n\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\t\truleslist.Add(filterrule)\n\t\truleslist.Add(sharedparamrule)\n\t\tparamFilter = ElementParameterFilter(ruleslist)\n\t\tcollector = FilteredElementCollector(doc)\n\t\tcollector.OfClass(FamilyInstance).WherePasses(paramFilter)\n\t\t\n\t\tcollector2 = FilteredElementCollector(doc)\n\t\tcollector2.OfClass(HostObject).WherePasses(paramFilter)\n\t\tcollector2.UnionWith(collector)\n\nelif paramId == None:\n\tfilterList = List[ElementFilter]()\n\tfor param in biplist:\n\t\tprovider = ParameterValueProvider(ElementId(param))\n\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\t\tparamFilter = ElementParameterFilter(filterrule)\n\t\tfilterList.Add(paramFilter)\n\t\t\t\n\torFilter = LogicalOrFilter(filterList)\n\tcollector = FilteredElementCollector(doc)\n\tcollector.OfClass(FamilyInstance).WherePasses(orFilter)\n\t\n\tcollector2 = FilteredElementCollector(doc)\n\tcollector2.OfClass(HostObject).WherePasses(orFilter)\n\tcollector2.UnionWith(collector)\nelse:\n\truleslist = List[FilterRule]()\n\tprovider = ParameterValueProvider(paramId)\n\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\truleslist.Add(filterrule)\n\truleslist.Add(sharedparamrule)\n\tparamFilter = ElementParameterFilter(ruleslist)\n\tcollector = FilteredElementCollector(doc)\n\tcollector.OfClass(FamilyInstance).WherePasses(paramFilter)\n\t\n\tcollector2 = FilteredElementCollector(doc)\n\tcollector2.OfClass(HostObject).WherePasses(paramFilter)\n\tcollector2.UnionWith(collector)\n\n\nif parameter == None and paramId == None and len(biplist) == 0:\n\tOUT = \"Does not work with non-shared family parameters\"\nelse:\n\telements = collector2.ToElements()\n\tOUT = elements",
+      "Engine": "IronPython2",
+      "VariableInputPorts": true,
+      "Id": "cec25576af5f41b3abd4bc0eb3ae35bc",
+      "Inputs": [
+        {
+          "Id": "d49f3b673381406db16a766a09e82385",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "fa78c5006fe940c881a3bc33efd90d18",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "60a5331e929f49c9b97ed3ca80009630",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nimport System\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nfrom System.Collections.Generic import List\nval = IN[0]\nsearch = IN[1]\n\nbips = System.Enum.GetValues(BuiltInParameter)\n\nbm = doc.ParameterBindings\nbmlist = bm.ForwardIterator()\nparamId = None\ntestout = []\nwhile bmlist.MoveNext():\n\tbinddef = bmlist.Key\n\ttestout.append(binddef.Name)\n\tif binddef.Name == search:\n\t\tparamId = binddef.Id\n\t\tbreak\n\nparam = None\nif paramId == None:\n\tbiplist = []\n\tfor bip in bips:\n\t\ttry:\n\t\t\tname = LabelUtils.GetLabelFor(bip)\n\t\texcept:\n\t\t\tcontinue\n\t\tif name == search:\n\t\t\tbiplist.append(bip)\n\n\nsharedparamrule = SharedParameterApplicableRule(search)\nevaluator = FilterNumericGreater()\n\nparameter = None\nif paramId == None and len(biplist) == 0:\n\tcoll = FilteredElementCollector(doc)\n\tsharedparams = coll.OfClass(ParameterElement)\n\t\n\tfor param in sharedparams:\n\t\tname = param.GetDefinition().Name\n\t\tif name == search:\n\t\t\tparameter = param\n\t\n\tif parameter != None:\n\t\truleslist = List[FilterRule]()\n\t\tprovider = ParameterValueProvider(parameter.Id)\n\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\t\truleslist.Add(filterrule)\n\t\truleslist.Add(sharedparamrule)\n\t\tparamFilter = ElementParameterFilter(ruleslist)\n\t\tcollector = FilteredElementCollector(doc)\n\t\tcollector.OfClass(FamilyInstance).WherePasses(paramFilter)\n\t\t\n\t\tcollector2 = FilteredElementCollector(doc)\n\t\tcollector2.OfClass(HostObject).WherePasses(paramFilter)\n\t\tcollector2.UnionWith(collector)\n\nelif paramId == None:\n\tfilterList = List[ElementFilter]()\n\tfor param in biplist:\n\t\tprovider = ParameterValueProvider(ElementId(param))\n\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\t\tparamFilter = ElementParameterFilter(filterrule)\n\t\tfilterList.Add(paramFilter)\n\t\t\t\n\torFilter = LogicalOrFilter(filterList)\n\tcollector = FilteredElementCollector(doc)\n\tcollector.OfClass(FamilyInstance).WherePasses(orFilter)\n\t\n\tcollector2 = FilteredElementCollector(doc)\n\tcollector2.OfClass(HostObject).WherePasses(orFilter)\n\tcollector2.UnionWith(collector)\nelse:\n\truleslist = List[FilterRule]()\n\tprovider = ParameterValueProvider(paramId)\n\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\truleslist.Add(filterrule)\n\truleslist.Add(sharedparamrule)\n\tparamFilter = ElementParameterFilter(ruleslist)\n\tcollector = FilteredElementCollector(doc)\n\tcollector.OfClass(FamilyInstance).WherePasses(paramFilter)\n\t\n\tcollector2 = FilteredElementCollector(doc)\n\tcollector2.OfClass(HostObject).WherePasses(paramFilter)\n\tcollector2.UnionWith(collector)\n\n\nif parameter == None and paramId == None and len(biplist) == 0:\n\tOUT = \"Does not work with non-shared family parameters\"\nelse:\n\telements = collector2.ToElements()\n\tOUT = elements",
+      "Engine": "IronPython2",
+      "VariableInputPorts": true,
+      "Id": "b9223177c21e4b0bb038bce11492611a",
+      "Inputs": [
+        {
+          "Id": "c29fd266ff3441bf93a1934a210fcd45",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "5fc83163e7bf4586b5b08109a4add83d",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "eed239a93c8a48329199b8bc6105d03a",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nimport System\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nfrom System.Collections.Generic import List\nval = IN[0]\nsearch = IN[1]\n\nbips = System.Enum.GetValues(BuiltInParameter)\n\nbm = doc.ParameterBindings\nbmlist = bm.ForwardIterator()\nparamId = None\ntestout = []\nwhile bmlist.MoveNext():\n\tbinddef = bmlist.Key\n\ttestout.append(binddef.Name)\n\tif binddef.Name == search:\n\t\tparamId = binddef.Id\n\t\tbreak\n\nparam = None\nif paramId == None:\n\tbiplist = []\n\tfor bip in bips:\n\t\ttry:\n\t\t\tname = LabelUtils.GetLabelFor(bip)\n\t\texcept:\n\t\t\tcontinue\n\t\tif name == search:\n\t\t\tbiplist.append(bip)\n\n\nsharedparamrule = SharedParameterApplicableRule(search)\nevaluator = FilterNumericLess()\n\nparameter = None\nif paramId == None and len(biplist) == 0:\n\tcoll = FilteredElementCollector(doc)\n\tsharedparams = coll.OfClass(ParameterElement)\n\t\n\tfor param in sharedparams:\n\t\tname = param.GetDefinition().Name\n\t\tif name == search:\n\t\t\tparameter = param\n\t\n\tif parameter != None:\n\t\tis_int = parameter.StorageType == StorageType.Integer\n\t\truleslist = List[FilterRule]()\n\t\tprovider = ParameterValueProvider(parameter.Id)\t\t\n\t\tif is_int:\n\t\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\t\telse:\n\t\t\tProjectUnits = parameter.GetUnitTypeId()\n\t\t\tval = UnitUtils.ConvertFromInternalUnits(val,ProjectUnits)\n\t\t\tfilterrule = FilterDoubleRule(provider, evaluator, val, 10e-10)\n\t\truleslist.Add(filterrule)\n\t\truleslist.Add(sharedparamrule)\n\t\tparamFilter = ElementParameterFilter(ruleslist)\n\t\tcollector = FilteredElementCollector(doc)\n\t\tcollector.OfClass(FamilyInstance).WherePasses(paramFilter)\n\t\t\n\t\tcollector2 = FilteredElementCollector(doc)\n\t\tcollector2.OfClass(HostObject).WherePasses(paramFilter)\n\t\tcollector2.UnionWith(collector)\n\nelif paramId == None:\n\tfilterList = List[ElementFilter]()\n\tfor param in biplist:\n\t\tprovider = ParameterValueProvider(ElementId(param))\n\t\tis_int = doc.get_TypeOfStorage(param) == StorageType.Integer\n\t\tif is_int:\n\t\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\t\telse:\n\t\t\tProjectUnits = param.GetUnitTypeId()\n\t\t\tval = UnitUtils.ConvertFromInternalUnits(val,ProjectUnits)\n\t\t\tfilterrule = FilterDoubleRule(provider, evaluator, val, 10e-10)\n\t\tparamFilter = ElementParameterFilter(filterrule)\n\t\tfilterList.Add(paramFilter)\n\t\t\t\n\torFilter = LogicalOrFilter(filterList)\n\tcollector = FilteredElementCollector(doc)\n\tcollector.OfClass(FamilyInstance).WherePasses(orFilter)\n\t\n\tcollector2 = FilteredElementCollector(doc)\n\tcollector2.OfClass(HostObject).WherePasses(orFilter)\n\tcollector2.UnionWith(collector)\nelse:\n\truleslist = List[FilterRule]()\n\tprovider = ParameterValueProvider(paramId)\n\tparam = doc.GetElement(paramId)\n\tis_int = param.StorageType == StorageType.Integer\n\tif is_int:\n\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\telse:\n\t\tProjectUnits = param.GetUnitTypeId()\n\t\tval = UnitUtils.ConvertFromInternalUnits(val,ProjectUnits)\n\t\tfilterrule = FilterDoubleRule(provider, evaluator, val, 10e-10)\n\truleslist.Add(filterrule)\n\truleslist.Add(sharedparamrule)\n\tparamFilter = ElementParameterFilter(ruleslist)\n\tcollector = FilteredElementCollector(doc)\n\tcollector.OfClass(FamilyInstance).WherePasses(paramFilter)\n\t\n\tcollector2 = FilteredElementCollector(doc)\n\tcollector2.OfClass(HostObject).WherePasses(paramFilter)\n\tcollector2.UnionWith(collector)\n\n\nif parameter == None and paramId == None and len(biplist) == 0:\n\tOUT = \"Does not work with non-shared family parameters\"\nelse:\n\telements = collector2.ToElements()\n\tOUT = elements",
+      "Engine": "IronPython2",
+      "VariableInputPorts": true,
+      "Id": "5a654032d6fd4aa08829f6ce39972d26",
+      "Inputs": [
+        {
+          "Id": "555c6a1d59ff4941b22f0a5f990a1104",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "f1df20e9264c4533ab2e5f52eaa01e66",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "aeafc74391994904b825c3fb7593c2c3",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"Offset from Host\";",
+      "Id": "2ea296630b45446f8439124a671249da",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "1a155f342f034ed0894094521772799b",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "2;",
+      "Id": "9d948406d0c2447d800b70306e68545c",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "24f742b052084f5082b034f6b72219b6",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\nimport System\n\nclr.AddReference(\"RevitServices\")\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\ndoc = DocumentManager.Instance.CurrentDBDocument\n\nclr.AddReference(\"RevitAPI\")\nimport Autodesk\nfrom Autodesk.Revit.DB import *\n\nclr.AddReference(\"RevitNodes\")\nimport Revit\nclr.ImportExtensions(Revit.Elements)\nclr.ImportExtensions(Revit.GeometryConversion)\n\nfrom System.Collections.Generic import List\nval = IN[0]\nsearch = IN[1]\n\nbips = System.Enum.GetValues(BuiltInParameter)\n\nbm = doc.ParameterBindings\nbmlist = bm.ForwardIterator()\nparamId = None\ntestout = []\nwhile bmlist.MoveNext():\n\tbinddef = bmlist.Key\n\ttestout.append(binddef.Name)\n\tif binddef.Name == search:\n\t\tparamId = binddef.Id\n\t\tbreak\n\nparam = None\nif paramId == None:\n\tbiplist = []\n\tfor bip in bips:\n\t\ttry:\n\t\t\tname = LabelUtils.GetLabelFor(bip)\n\t\texcept:\n\t\t\tcontinue\n\t\tif name == search:\n\t\t\tbiplist.append(bip)\n\n\nsharedparamrule = SharedParameterApplicableRule(search)\nevaluator = FilterNumericLess()\n\nparameter = None\nif paramId == None and len(biplist) == 0:\n\tcoll = FilteredElementCollector(doc)\n\tsharedparams = coll.OfClass(ParameterElement)\n\t\n\tfor param in sharedparams:\n\t\tname = param.GetDefinition().Name\n\t\tif name == search:\n\t\t\tparameter = param\n\t\n\tif parameter != None:\n\t\truleslist = List[FilterRule]()\n\t\tprovider = ParameterValueProvider(parameter.Id)\n\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\t\truleslist.Add(filterrule)\n\t\truleslist.Add(sharedparamrule)\n\t\tparamFilter = ElementParameterFilter(ruleslist)\n\t\tcollector = FilteredElementCollector(doc)\n\t\tcollector.OfClass(FamilyInstance).WherePasses(paramFilter)\n\t\t\n\t\tcollector2 = FilteredElementCollector(doc)\n\t\tcollector2.OfClass(HostObject).WherePasses(paramFilter)\n\t\tcollector2.UnionWith(collector)\n\nelif paramId == None:\n\tfilterList = List[ElementFilter]()\n\tfor param in biplist:\n\t\tprovider = ParameterValueProvider(ElementId(param))\n\t\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\t\tparamFilter = ElementParameterFilter(filterrule)\n\t\tfilterList.Add(paramFilter)\n\t\t\t\n\torFilter = LogicalOrFilter(filterList)\n\tcollector = FilteredElementCollector(doc)\n\tcollector.OfClass(FamilyInstance).WherePasses(orFilter)\n\t\n\tcollector2 = FilteredElementCollector(doc)\n\tcollector2.OfClass(HostObject).WherePasses(orFilter)\n\tcollector2.UnionWith(collector)\nelse:\n\truleslist = List[FilterRule]()\n\tprovider = ParameterValueProvider(paramId)\n\tfilterrule = FilterIntegerRule(provider, evaluator, val)\n\truleslist.Add(filterrule)\n\truleslist.Add(sharedparamrule)\n\tparamFilter = ElementParameterFilter(ruleslist)\n\tcollector = FilteredElementCollector(doc)\n\tcollector.OfClass(FamilyInstance).WherePasses(paramFilter)\n\t\n\tcollector2 = FilteredElementCollector(doc)\n\tcollector2.OfClass(HostObject).WherePasses(paramFilter)\n\tcollector2.UnionWith(collector)\n\n\nif parameter == None and paramId == None and len(biplist) == 0:\n\tOUT = \"Does not work with non-shared family parameters\"\nelse:\n\telements = collector2.ToElements()\n\tOUT = elements",
+      "Engine": "IronPython2",
+      "VariableInputPorts": true,
+      "Id": "e8dcd38918ea41e1bef97b17bb24cb78",
+      "Inputs": [
+        {
+          "Id": "f4dca902d4804cd1800ce09a45bbbf4c",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "c08bf02ce4924968a31a9aef87e9a701",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "e1bec4fe0152409ab0c38de75ebc3999",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"Ground Bus\";",
+      "Id": "009ae6709cb9416194106b6919720424",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "472f41a7fb7648d2955fc1070c3330a9",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Function, DynamoCore",
+      "FunctionSignature": "5753fca3-ad2f-4632-ae40-8c844ef6def6",
+      "FunctionType": "Graph",
+      "NodeType": "FunctionNode",
+      "Id": "24854491b3b8417a82fb3fce4eca42da",
+      "Inputs": [
+        {
+          "Id": "98fc9b454d13447bb0dc985580ff34eb",
+          "Name": "view",
+          "Description": "View",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "3e82b8d503dc4cb3a2e9824853c64fcc",
+          "Name": "documents",
+          "Description": "return value",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "492eaacf9542453e885feee78a213271",
+          "Name": "elements",
+          "Description": "return value",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "This node will return a dictionary with all visible element per document from the given view, including elements from linked files."
+    },
+    {
+      "ConcreteType": "DSRevitNodesUI.Views, DSRevitNodesUI",
+      "SelectedIndex": 1,
+      "SelectedString": "00 - C00_Algemeen",
+      "NodeType": "ExtensionNode",
+      "Id": "fb7a908c99904cea8006ec16fdb9e16a",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "3c54e3b1cc314728b4b309dba7fdcda3",
+          "Name": "Views",
+          "Description": "The selected Views",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "All views available in the current document."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "39deb6db60094c43a36df56790abf95d",
+      "End": "c08bf02ce4924968a31a9aef87e9a701",
+      "Id": "a20be46f4d3b4aafaa9c590456a8510d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "19b322035c374d20b9300dc5b387143f",
+      "End": "d49f3b673381406db16a766a09e82385",
+      "Id": "10fe0403dee341cfbdfc05124c839d8e",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "19b322035c374d20b9300dc5b387143f",
+      "End": "c29fd266ff3441bf93a1934a210fcd45",
+      "Id": "963a86c936e64f41bb4dadddc957700a",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "19b322035c374d20b9300dc5b387143f",
+      "End": "f4dca902d4804cd1800ce09a45bbbf4c",
+      "Id": "a4d0acdbf83a4c9785c11c14ac200d44",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "1a155f342f034ed0894094521772799b",
+      "End": "f1df20e9264c4533ab2e5f52eaa01e66",
+      "Id": "e922dc256a4249b18b648a8fde4d5be6",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "24f742b052084f5082b034f6b72219b6",
+      "End": "555c6a1d59ff4941b22f0a5f990a1104",
+      "Id": "49833185296645be8d9945e977a9cb8d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "472f41a7fb7648d2955fc1070c3330a9",
+      "End": "5fc83163e7bf4586b5b08109a4add83d",
+      "Id": "b96c334abbb340b59dc0359981e61c2f",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "472f41a7fb7648d2955fc1070c3330a9",
+      "End": "fa78c5006fe940c881a3bc33efd90d18",
+      "Id": "583b0bcc303b4110a02c3851c82f2a42",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "3c54e3b1cc314728b4b309dba7fdcda3",
+      "End": "98fc9b454d13447bb0dc985580ff34eb",
+      "Id": "352a0384570f4f8faf0775870e461b30",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [
+    "5753fca3-ad2f-4632-ae40-8c844ef6def6"
+  ],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "MEPover",
+      "Version": "2022.10.30",
+      "ReferenceType": "Package",
+      "Nodes": [
+        "24854491b3b8417a82fb3fce4eca42da"
+      ]
+    }
+  ],
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "2.12",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "1.10",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.13.1.3887",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "ba5169e436ed4a40b4c2f9924c76b296",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 68.5525706138938,
+        "Y": 476.65761873440954
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "53ae0bde54b540b3af9a188d62239511",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 107.90651477272792,
+        "Y": 254.36963123811398
+      },
+      {
+        "Name": "Python: FilterIntegerEquals",
+        "ShowGeometry": true,
+        "Id": "cec25576af5f41b3abd4bc0eb3ae35bc",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 595.5120806065313,
+        "Y": 231.09991342767438
+      },
+      {
+        "Name": "Python: FilterIntegerGreaterThan",
+        "ShowGeometry": true,
+        "Id": "b9223177c21e4b0bb038bce11492611a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 576.22919514847626,
+        "Y": 464.04570661909815
+      },
+      {
+        "Name": "Python: FilterNumericLessThan",
+        "ShowGeometry": true,
+        "Id": "5a654032d6fd4aa08829f6ce39972d26",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 542.69242096218238,
+        "Y": 1094.3161533523714
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "2ea296630b45446f8439124a671249da",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 51.397527677380481,
+        "Y": 1065.38741861173
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "9d948406d0c2447d800b70306e68545c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 148.3626953855354,
+        "Y": 1196.8262945298354
+      },
+      {
+        "Name": "Python: FilterIntegerLessThan",
+        "ShowGeometry": true,
+        "Id": "e8dcd38918ea41e1bef97b17bb24cb78",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 589.128734474671,
+        "Y": 701.5249105038738
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "009ae6709cb9416194106b6919720424",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 97.0,
+        "Y": 652.0
+      },
+      {
+        "Name": "All_(Linked)_Elements_In_View",
+        "ShowGeometry": true,
+        "Id": "24854491b3b8417a82fb3fce4eca42da",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 1407.6157178884769,
+        "Y": 193.41556497895331
+      },
+      {
+        "Name": "Views",
+        "ShowGeometry": true,
+        "Id": "fb7a908c99904cea8006ec16fdb9e16a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 1040.116658081286,
+        "Y": 452.24554796143696
+      }
+    ],
+    "Annotations": [],
+    "X": 236.09635066959731,
+    "Y": 124.81038685301726,
+    "Zoom": 0.67483165842686477
+  }
+}

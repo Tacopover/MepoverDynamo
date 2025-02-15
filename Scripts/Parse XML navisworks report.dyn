@@ -1,0 +1,260 @@
+{
+  "Uuid": "03171309-6691-453e-90f2-c601d39ebdf8",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "Parse XML navisworks report",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
+      "HintPath": "C:\\Users\\taco\\OneDrive - MEPover\\Werk\\BUCC\\ASML\\10C\\Beugels - INS.xml",
+      "InputValue": "C:\\Users\\taco\\OneDrive - MEPover\\Werk\\BUCC\\ASML\\10C\\Beugels - INS.xml",
+      "NodeType": "ExtensionNode",
+      "Id": "5464e675c9cd4d6e80271f5538e2eaec",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "65536361202342e0ab2ddb8ed7703388",
+          "Name": "",
+          "Description": "File Path",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows you to select a file on the system to get its file path."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "# Load the Python Standard and DesignScript Libraries\r\nimport sys\r\nimport clr\r\nclr.AddReference('ProtoGeometry')\r\nfrom Autodesk.DesignScript.Geometry import *\r\n\r\n# The inputs to this node will be stored as a list in the IN variables.\r\ndataEnteringNode = IN\r\nparty = IN[1]\r\n\r\nimport xml.etree.ElementTree as ET\r\n\r\ndef get_smarttag_values(xml_file):\r\n    tree = ET.parse(xml_file)\r\n    root = tree.getroot()\r\n    smarttag_values = []\r\n\r\n    for clashresult in root.findall(\".//clashresult\"):\r\n        for clashobject in clashresult.findall(\".//clashobject\"):\r\n            pathlink = clashobject.find(\".//pathlink\")\r\n            if pathlink is not None:\r\n                nodes = [node.text for node in pathlink.findall(\".//node\")]\r\n                if any(party in node for node in nodes):\r\n                    smarttags = clashobject.findall(\".//smarttag\")\r\n                    for smarttag in smarttags:\r\n                        name = smarttag.find(\"name\")\r\n                        value = smarttag.find(\"value\")\r\n                        if name is not None and name.text == \"Element IfcTag\" and value is not None:\r\n                            smarttag_values.append(value.text)\r\n    \r\n    return smarttag_values\r\n\r\n# Example usage\r\nxml_file = IN[0]\r\nsmarttag_values = get_smarttag_values(xml_file)\r\n\r\nlistout = \";\".join(smarttag_values)\r\n# Place your code below this line\r\n\r\n# Assign your output to the OUT variable.\r\nOUT = listout",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "abb30142bbba4e63b2e21c0fb47e7f04",
+      "Inputs": [
+        {
+          "Id": "8316f2084dcb4581b366dcea3021d79c",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "177acc00aaf14fb390491b3f82b2e119",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "18e0f423c9864530ad3fa968dca47de4",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Function, DynamoCore",
+      "FunctionSignature": "ef128413-8fd0-410f-9447-dfd84dfe29e3",
+      "FunctionType": "Graph",
+      "NodeType": "FunctionNode",
+      "Id": "7ffe5e4def4f4ea5aa963f91e0f21fa1",
+      "Inputs": [
+        {
+          "Id": "9b9f314a5cb8425baa2648e3d384c426",
+          "Name": "str",
+          "Description": "string",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "b3cd55ecfddf4b4dbcf01e19cfbc19a4",
+          "Name": "str",
+          "Description": "return value",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Copies a string to the clipboard. "
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"_HOM_\";",
+      "Id": "d6c608057f6845bb8215c77813456db0",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "93d1b3e51bd94fae9bc59d412fd19901",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "65536361202342e0ab2ddb8ed7703388",
+      "End": "8316f2084dcb4581b366dcea3021d79c",
+      "Id": "2178ba752f3f43938017efb7aee7dee2",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "18e0f423c9864530ad3fa968dca47de4",
+      "End": "9b9f314a5cb8425baa2648e3d384c426",
+      "Id": "b7a1c01ad490454d9aeb596cc8ddc35f",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "93d1b3e51bd94fae9bc59d412fd19901",
+      "End": "177acc00aaf14fb390491b3f82b2e119",
+      "Id": "9246380354724f128a06ca17b5f3cd78",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [
+    "ef128413-8fd0-410f-9447-dfd84dfe29e3"
+  ],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "Clockwork for Dynamo 1.x",
+      "Version": "1.34.0",
+      "ReferenceType": "Package",
+      "Nodes": [
+        "7ffe5e4def4f4ea5aa963f91e0f21fa1"
+      ]
+    },
+    {
+      "Name": "Beugels - INS.xml",
+      "ReferenceType": "External",
+      "Nodes": [
+        "5464e675c9cd4d6e80271f5538e2eaec"
+      ]
+    }
+  ],
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "2.12",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "1.10",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.14.0.4641",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Name": "File Path",
+        "ShowGeometry": true,
+        "Id": "5464e675c9cd4d6e80271f5538e2eaec",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 121.3333333333332,
+        "Y": 255.33333333333337
+      },
+      {
+        "Name": "Python Script",
+        "ShowGeometry": true,
+        "Id": "abb30142bbba4e63b2e21c0fb47e7f04",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 587.99999999999977,
+        "Y": 273.99999999999989
+      },
+      {
+        "Name": "Clipboard.SendTo",
+        "ShowGeometry": true,
+        "Id": "7ffe5e4def4f4ea5aa963f91e0f21fa1",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 987.11062138214766,
+        "Y": 254.6816092897144
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "d6c608057f6845bb8215c77813456db0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 224.0,
+        "Y": 555.0
+      }
+    ],
+    "Annotations": [],
+    "X": -22.575598120986228,
+    "Y": 90.140025555140539,
+    "Zoom": 0.72995082527078581
+  }
+}

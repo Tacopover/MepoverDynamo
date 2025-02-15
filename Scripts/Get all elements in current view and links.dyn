@@ -1,0 +1,678 @@
+{
+  "Uuid": "7018a056-9542-48c4-8ff5-59d5e0cb8dac",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "Get all elements in current view and links",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\n\r\nclr.AddReference(\"RevitServices\")\r\nimport RevitServices\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nuidoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument\r\n\r\nclr.AddReference(\"RevitAPI\")\r\nimport Autodesk\r\nfrom Autodesk.Revit.DB import *\r\n\r\nclr.AddReference(\"RevitNodes\")\r\nimport Revit\r\nclr.ImportExtensions(Revit.Elements)\r\nclr.ImportExtensions(Revit.GeometryConversion)\r\n\r\nfrom System.Collections.Generic import List\r\n\t\r\nclass ElementCollector:\r\n    def __init__(self, uidoc):\r\n        self._uiDocument = uidoc\r\n        self._app = uidoc.Application.Application\r\n        self._parentDocument = uidoc.Document\r\n        self._activeView = self._parentDocument.ActiveView\r\n        \r\n\r\n    def GetVisibleElements(self):\r\n        self.context = VisibleElementContext(self._parentDocument)\r\n        exp = CustomExporter(self._parentDocument, self.context)\r\n        views = List[ElementId]([self._activeView.Id])\r\n        exp.Export(views)\r\n        return self.context.Elements\r\n        \r\n    def GetVisibleElements2D(self):\r\n        self.context2D = VisibleElementContext2D(self._parentDocument)\r\n        exp = CustomExporter(self._parentDocument, self.context2D)\r\n        views = List[ElementId]([self._activeView.Id])\r\n        exp.Export(views)\r\n        return self.context2D.Elements\r\n\r\n\r\nclass VisibleElementContext2D(IExportContext2D):\r\n    def __init__(self, doc):\r\n        self.ParentDocument = doc\r\n        self.CurrentDocument = doc\r\n        self.Documents = [doc]\r\n        self.Elements = []\r\n        self.ElementIds = []\r\n        self.DocMap = {}\r\n        self.DocMap[self.CurrentDocument.Title] = []\r\n\r\n    def Finish(self):\r\n        pass\r\n\r\n    def IsCanceled(self):\r\n        return False\r\n\r\n    def OnCurve(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnElementBegin(self, elementId):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnElementBegin2D(self, node):\r\n        self.ElementIds.append(node.ElementId)\r\n        elem = self.CurrentDocument.GetElement(node.ElementId)\r\n        self.Elements.append(elem)\r\n        self.DocMap[self.CurrentDocument.Title].append(elem)\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnElementEnd(self, elementId):\r\n        pass\r\n\r\n    def OnElementEnd2D(self, node):\r\n        pass\r\n\r\n    def OnFaceBegin(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEdge2D(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEnd(self, node):\r\n        pass\r\n\r\n    def OnFaceSilhouette2D(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnInstanceBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnInstanceEnd(self, node):\r\n        pass\r\n\r\n    def OnLight(self, node):\r\n        pass\r\n\r\n    def OnLineSegment(self, segment):\r\n        pass\r\n\r\n    def OnLinkBegin(self, node):\r\n        doc = node.GetDocument()\r\n        self.Documents.append(doc)\r\n        self.CurrentDocument = doc\r\n        if self.CurrentDocument.Title not in self.DocMap:\r\n        \tself.DocMap[self.CurrentDocument.Title] = []\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnLinkEnd(self, node):\r\n        self.CurrentDocument = self.ParentDocument\r\n\r\n    def OnMaterial(self, node):\r\n        raise NotImplementedError\r\n\r\n    def OnPolyline(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnPolylineSegments(self, segments):\r\n        pass\r\n\r\n    def OnPolymesh(self, node):\r\n        pass\r\n\r\n    def OnRPC(self, node):\r\n        pass\r\n\r\n    def OnText(self, node):\r\n        pass\r\n\r\n    def OnViewBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnViewEnd(self, elementId):\r\n        pass\r\n\r\n    def Start(self):\r\n        return True\r\n        \r\nclass VisibleElementContext(IExportContext):\r\n    def __init__(self, doc):\r\n        self.ParentDocument = doc\r\n        self.CurrentDocument = doc\r\n        self.Documents = [doc]\r\n        self.Elements = []\r\n        self.ElementIds = []\r\n        self.DocMap = {}\r\n        self.DocMap[self.CurrentDocument.Title] = []\r\n\r\n    def Start(self):\r\n        return True\r\n\r\n    def Finish(self):\r\n        pass\r\n\r\n    def IsCanceled(self):\r\n        return False\r\n\r\n    def OnViewBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnViewEnd(self, elementId):\r\n        pass\r\n\r\n    def OnElementBegin(self, elementId):\r\n        self.ElementIds.append(elementId)\r\n        elem = self.CurrentDocument.GetElement(elementId)\r\n        self.Elements.append(elem)\r\n        self.DocMap[self.CurrentDocument.Title].append(elem)\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnElementEnd(self, elementId):\r\n        pass\r\n\r\n    def OnInstanceBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnInstanceEnd(self, node):\r\n        pass\r\n\r\n    def OnLinkBegin(self, node):\r\n        doc = node.GetDocument()\r\n        self.Documents.append(doc)\r\n        self.CurrentDocument = doc\r\n        if self.CurrentDocument.Title not in self.DocMap:\r\n        \tself.DocMap[self.CurrentDocument.Title] = []\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnLinkEnd(self, node):\r\n        self.CurrentDocument = self.ParentDocument\r\n\r\n    def OnFaceBegin(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEnd(self, node):\r\n        pass\r\n\r\n    def OnRPC(self, node):\r\n        pass\r\n\r\n    def OnLight(self, node):\r\n        pass\r\n\r\n    def OnMaterial(self, node):\r\n        pass\r\n\r\n    def OnPolymesh(self, node):\r\n        pass\r\n\r\n\r\ncollector = ElementCollector(uidoc)\r\nlistout = None\r\nviewtype = doc.ActiveView.ViewType\r\nif viewtype == ViewType.ThreeD:\r\n\telements = collector.GetVisibleElements()\r\n\tlistout = collector.context.DocMap\r\nelif viewtype == ViewType.FloorPlan or viewtype == ViewType.Section or viewtype == ViewType.Elevation or viewtype == ViewType.CeilingPlan or viewtype == ViewType.AreaPlan or viewtype == ViewType.EngineeringPlan:\r\n\telements = collector.GetVisibleElements2D()\r\n\tlistout = collector.context2D.DocMap\r\n\r\nOUT = doc.ActiveView.Name, listout #elements, [x.GetType() for x in elements if x is not None]",
+      "Engine": "IronPython2",
+      "VariableInputPorts": true,
+      "Id": "0de9cc63da084763a011d236e45f5603",
+      "Inputs": [
+        {
+          "Id": "5558595eeedf44cf9185365b9801c604",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "957ce242abb74fe382b2054c890eed66",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[1];",
+      "Id": "730f968cd0e349d4b6443dffa7e74a9f",
+      "Inputs": [
+        {
+          "Id": "d84c13db916b4250a9c53a7af0fa93e2",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "4f467cd1610c4dbd910ea893c28a13f0",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DSCore.List.UniqueItems@var[]..[]",
+      "Id": "94bac40373d74eb382f348a41dc23013",
+      "Inputs": [
+        {
+          "Id": "24210ea1f59f4216bb568a1da7429a1b",
+          "Name": "list",
+          "Description": "List to filter duplicates out of.\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "4ce432268fd84a8f8fa498b3b157342d",
+          "Name": "list",
+          "Description": "Filtered list.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Creates a new list containing all unique items in the given list.\n\nList.UniqueItems (list: var[]..[]): var[]..[]"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+      "NodeType": "BooleanInputNode",
+      "InputValue": true,
+      "Id": "85aa784083eb445a9b277c2009b98113",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "cd050daef1294a20b0ceb1d303d4d3a5",
+          "Name": "",
+          "Description": "Boolean",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Selection between a true and false."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\n\r\nclr.AddReference(\"RevitServices\")\r\nimport RevitServices\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nuidoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument\r\n\r\nclr.AddReference(\"RevitAPI\")\r\nimport Autodesk\r\nfrom Autodesk.Revit.DB import *\r\n\r\nclr.AddReference(\"RevitNodes\")\r\nimport Revit\r\nclr.ImportExtensions(Revit.Elements)\r\nclr.ImportExtensions(Revit.GeometryConversion)\r\n\r\nfrom System.Collections.Generic import List\r\n\r\nclass ElementCollector:\r\n    def __init__(self, uidoc):\r\n        self._uiDocument = uidoc\r\n        self._app = uidoc.Application.Application\r\n        self._parentDocument = uidoc.Document\r\n        self._activeView = self._parentDocument.ActiveView\r\n\r\n\r\n    def GetVisibleElements(self):\r\n        self.context = VisibleElementContext(self._parentDocument)\r\n        exp = CustomExporter(self._parentDocument, self.context)\r\n        views = List[ElementId]([self._activeView.Id])\r\n        exp.Export(views)\r\n        return self.context.Elements\r\n\r\n    def GetVisibleElements2D(self):\r\n        self.context2D = VisibleElementContext2D(self._parentDocument)\r\n        exp = CustomExporter(self._parentDocument, self.context2D)\r\n        views = List[ElementId]([self._activeView.Id])\r\n        exp.Export(views)\r\n        return self.context2D.Elements\r\n\r\n\r\nclass VisibleElementContext2D(IExportContext2D):\r\n    def __init__(self, doc):\r\n        self.ParentDocument = doc\r\n        self.CurrentDocument = doc\r\n        self.Documents = [doc]\r\n        self.Elements = []\r\n        self.ElementIds = []\r\n        self.DocMap = {}\r\n        self.DocMap[self.CurrentDocument.Title] = []\r\n\r\n    def Finish(self):\r\n        pass\r\n\r\n    def IsCanceled(self):\r\n        return False\r\n\r\n    def OnCurve(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnElementBegin(self, elementId):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnElementBegin2D(self, node):\r\n        self.ElementIds.append(node.ElementId)\r\n        elem = self.CurrentDocument.GetElement(node.ElementId)\r\n        self.Elements.append(elem)\r\n        self.DocMap[self.CurrentDocument.Title].append(elem)\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnElementEnd(self, elementId):\r\n        pass\r\n\r\n    def OnElementEnd2D(self, node):\r\n        pass\r\n\r\n    def OnFaceBegin(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEdge2D(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEnd(self, node):\r\n        pass\r\n\r\n    def OnFaceSilhouette2D(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnInstanceBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnInstanceEnd(self, node):\r\n        pass\r\n\r\n    def OnLight(self, node):\r\n        pass\r\n\r\n    def OnLineSegment(self, segment):\r\n        pass\r\n\r\n    def OnLinkBegin(self, node):\r\n        doc = node.GetDocument()\r\n        self.Documents.append(doc)\r\n        self.CurrentDocument = doc\r\n        if self.CurrentDocument.Title not in self.DocMap:\r\n                self.DocMap[self.CurrentDocument.Title] = []\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnLinkEnd(self, node):\r\n        self.CurrentDocument = self.ParentDocument\r\n\r\n    def OnMaterial(self, node):\r\n        raise NotImplementedError\r\n\r\n    def OnPolyline(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnPolylineSegments(self, segments):\r\n        pass\r\n\r\n    def OnPolymesh(self, node):\r\n        pass\r\n\r\n    def OnRPC(self, node):\r\n        pass\r\n\r\n    def OnText(self, node):\r\n        pass\r\n\r\n    def OnViewBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnViewEnd(self, elementId):\r\n        pass\r\n\r\n    def Start(self):\r\n        return True\r\n\r\nclass VisibleElementContext(IExportContext):\r\n    def __init__(self, doc):\r\n        self.ParentDocument = doc\r\n        self.CurrentDocument = doc\r\n        self.Documents = [doc]\r\n        self.Elements = []\r\n        self.ElementIds = []\r\n        self.DocMap = {}\r\n        self.DocMap[self.CurrentDocument.Title] = []\r\n\r\n    def Start(self):\r\n        return True\r\n\r\n    def Finish(self):\r\n        pass\r\n\r\n    def IsCanceled(self):\r\n        return False\r\n\r\n    def OnViewBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnViewEnd(self, elementId):\r\n        pass\r\n\r\n    def OnElementBegin(self, elementId):\r\n        self.ElementIds.append(elementId)\r\n        elem = self.CurrentDocument.GetElement(elementId)\r\n        self.Elements.append(elem)\r\n        self.DocMap[self.CurrentDocument.Title].append(elem)\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnElementEnd(self, elementId):\r\n        pass\r\n\r\n    def OnInstanceBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnInstanceEnd(self, node):\r\n        pass\r\n\r\n    def OnLinkBegin(self, node):\r\n        doc = node.GetDocument()\r\n        self.Documents.append(doc)\r\n        self.CurrentDocument = doc\r\n        if self.CurrentDocument.Title not in self.DocMap:\r\n                self.DocMap[self.CurrentDocument.Title] = []\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnLinkEnd(self, node):\r\n        self.CurrentDocument = self.ParentDocument\r\n\r\n    def OnFaceBegin(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEnd(self, node):\r\n        pass\r\n\r\n    def OnRPC(self, node):\r\n        pass\r\n\r\n    def OnLight(self, node):\r\n        pass\r\n\r\n    def OnMaterial(self, node):\r\n        pass\r\n\r\n    def OnPolymesh(self, node):\r\n        pass\r\n\r\n\r\ncollector = ElementCollector(uidoc)\r\nlistout = None\r\nif doc.ActiveView.ViewType == ViewType.ThreeD:\r\n        elements = collector.GetVisibleElements()\r\n        listout = collector.context.DocMap\r\nelse:\r\n        elements = collector.GetVisibleElements2D()\r\n        listout = collector.context2D.DocMap\r\n\r\nOUT = listout #elements, [x.GetType() for x in elements if x is not None]",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "9d220265b249493296213f3a46c81fd6",
+      "Inputs": [
+        {
+          "Id": "d30f0fcf37044bbba6c6d4305bd08081",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c1b233715e344704b5ca50bfa82aa30e",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\n\r\nclr.AddReference(\"RevitServices\")\r\nimport RevitServices\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nuidoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument\r\n\r\nclr.AddReference(\"RevitAPI\")\r\nimport Autodesk\r\nfrom Autodesk.Revit.DB import *\r\n\r\nclr.AddReference(\"RevitNodes\")\r\nimport Revit\r\nclr.ImportExtensions(Revit.Elements)\r\nclr.ImportExtensions(Revit.GeometryConversion)\r\n\r\nfrom System.Collections.Generic import List\r\n\r\ndef remove_duplicates(d):\r\n    for key, objects in d.items():\r\n        seen = {}\r\n        new_objects = []\r\n        for obj in objects:\r\n            if obj == None:\r\n                continue\r\n            if obj.Id not in seen:\r\n                seen[obj.Id] = obj\r\n                new_objects.append(obj)\r\n        d[key] = new_objects\r\n\r\nclass ElementCollector:\r\n    def __init__(self, uidoc, view):\r\n        self._uiDocument = uidoc\r\n        self._app = uidoc.Application.Application\r\n        self._parentDocument = uidoc.Document\r\n        self._activeView = self._parentDocument.ActiveView\r\n        self._view = view\r\n        \r\n        \r\n    def GetVisibleElements(self):\r\n    \tviewtype = self._view.ViewType\r\n    \tis2D = False\r\n    \tif viewtype == ViewType.ThreeD:\r\n    \t\tself.context = VisibleElementContext(self._parentDocument)\r\n        elif viewtype == ViewType.FloorPlan or viewtype == ViewType.Section or viewtype == ViewType.Elevation or viewtype == ViewType.CeilingPlan or viewtype == ViewType.AreaPlan or viewtype == ViewType.EngineeringPlan:\r\n        \tself.context = VisibleElementContext2D(self._parentDocument)\r\n        \tis2D = True\r\n        \t\r\n        exp = CustomExporter(self._parentDocument, self.context)\r\n        views = List[ElementId]([self._view.Id])\r\n        exp.Export(views)\r\n        \r\n        outmap = self.context.DocMap\r\n        if is2D:\r\n        \t#something weird with duplicate elements in the VisibleElementContext2D, so this is a makeshift solution\r\n        \tremove_duplicates(outmap)\r\n        \t\t       \t\t\r\n        return outmap\r\n        \r\n\r\n        \r\n\r\n\r\nclass VisibleElementContext2D(IExportContext2D):\r\n    def __init__(self, doc):\r\n        self.ParentDocument = doc\r\n        self.CurrentDocument = doc\r\n        self.Documents = [doc]\r\n        self.Elements = []\r\n        self.ElementIds = []\r\n        self.DocMap = {}\r\n        self.DocMap[self.CurrentDocument.Title] = []\r\n\r\n    def Finish(self):\r\n        pass\r\n\r\n    def IsCanceled(self):\r\n        return False\r\n\r\n    def OnCurve(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnElementBegin(self, elementId):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnElementBegin2D(self, node):\r\n        elem = self.CurrentDocument.GetElement(node.ElementId)\r\n        self.Elements.append(elem)\r\n        self.DocMap[self.CurrentDocument.Title].append(elem)\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnElementEnd(self, elementId):\r\n        pass\r\n\r\n    def OnElementEnd2D(self, node):\r\n        pass\r\n\r\n    def OnFaceBegin(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEdge2D(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEnd(self, node):\r\n        pass\r\n\r\n    def OnFaceSilhouette2D(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnInstanceBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnInstanceEnd(self, node):\r\n        pass\r\n\r\n    def OnLight(self, node):\r\n        pass\r\n\r\n    def OnLineSegment(self, segment):\r\n        pass\r\n\r\n    def OnLinkBegin(self, node):\r\n        doc = node.GetDocument()\r\n        self.Documents.append(doc)\r\n        self.CurrentDocument = doc\r\n        if self.CurrentDocument.Title not in self.DocMap:\r\n        \tself.DocMap[self.CurrentDocument.Title] = []\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnLinkEnd(self, node):\r\n        self.CurrentDocument = self.ParentDocument\r\n\r\n    def OnMaterial(self, node):\r\n        pass\r\n\r\n    def OnPolyline(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnPolylineSegments(self, segments):\r\n        pass\r\n\r\n    def OnPolymesh(self, node):\r\n        pass\r\n\r\n    def OnRPC(self, node):\r\n        pass\r\n\r\n    def OnText(self, node):\r\n        pass\r\n\r\n    def OnViewBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnViewEnd(self, elementId):\r\n        pass\r\n\r\n    def Start(self):\r\n        return True\r\n        \r\nclass VisibleElementContext(IExportContext):\r\n    def __init__(self, doc):\r\n        self.ParentDocument = doc\r\n        self.CurrentDocument = doc\r\n        self.Documents = [doc]\r\n        self.Elements = []\r\n        self.ElementIds = []\r\n        self.DocMap = {}\r\n        self.DocMap[self.CurrentDocument.Title] = []\r\n\r\n    def Start(self):\r\n        return True\r\n\r\n    def Finish(self):\r\n        pass\r\n\r\n    def IsCanceled(self):\r\n        return False\r\n\r\n    def OnViewBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnViewEnd(self, elementId):\r\n        pass\r\n\r\n    def OnElementBegin(self, elementId):\r\n        self.ElementIds.append(elementId)\r\n        elem = self.CurrentDocument.GetElement(elementId)\r\n        self.Elements.append(elem)\r\n        self.DocMap[self.CurrentDocument.Title].append(elem)\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnElementEnd(self, elementId):\r\n        pass\r\n\r\n    def OnInstanceBegin(self, node):\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnInstanceEnd(self, node):\r\n        pass\r\n\r\n    def OnLinkBegin(self, node):\r\n        doc = node.GetDocument()\r\n        self.Documents.append(doc)\r\n        self.CurrentDocument = doc\r\n        if self.CurrentDocument.Title not in self.DocMap:\r\n        \tself.DocMap[self.CurrentDocument.Title] = []\r\n        return RenderNodeAction.Proceed\r\n\r\n    def OnLinkEnd(self, node):\r\n        self.CurrentDocument = self.ParentDocument\r\n\r\n    def OnFaceBegin(self, node):\r\n        return RenderNodeAction.Skip\r\n\r\n    def OnFaceEnd(self, node):\r\n        pass\r\n\r\n    def OnRPC(self, node):\r\n        pass\r\n\r\n    def OnLight(self, node):\r\n        pass\r\n\r\n    def OnMaterial(self, node):\r\n        pass\r\n\r\n    def OnPolymesh(self, node):\r\n        pass\r\n\r\nview = UnwrapElement(IN[0])\r\ncollector = ElementCollector(uidoc, view)\r\nelements = collector.GetVisibleElements()\r\n\r\nOUT = elements",
+      "Engine": "IronPython2",
+      "VariableInputPorts": true,
+      "Id": "d19aa93a61b24da4a0edb9fb4775e800",
+      "Inputs": [
+        {
+          "Id": "98ff14873b1d46c2813e95f241648f95",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "8bd174f809e64abca2c0413ee39e212c",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "DSRevitNodesUI.Views, DSRevitNodesUI",
+      "SelectedIndex": 1,
+      "SelectedString": "00 - C00_Algemeen",
+      "NodeType": "ExtensionNode",
+      "Id": "64265ecc4dcd472a810c3da8fd1f29b8",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "2adb3c1ca87a4333a80ecb6b9dffd7df",
+          "Name": "Views",
+          "Description": "The selected Views",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "All views available in the current document."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Function, DynamoCore",
+      "FunctionSignature": "f153d48d-85dd-4a7e-8ba2-91b08d81e5e7",
+      "FunctionType": "Graph",
+      "NodeType": "FunctionNode",
+      "Id": "d9826d5d8e4c4f519c71fe4f671357d1",
+      "Inputs": [
+        {
+          "Id": "8f2608e0c3154de4af8cab54cf79c047",
+          "Name": "refresh",
+          "Description": "bool\nDefault value : true",
+          "UsingDefaultValue": true,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "0ec195c8b40b4ff588bcde1cfbe95b1a",
+          "Name": "element(s)",
+          "Description": "return value",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Gets the currently selected elements. Connect a boolean switch to refresh the selection."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[0][0];",
+      "Id": "bb879b6c655f475da9c330f8107948d2",
+      "Inputs": [
+        {
+          "Id": "8c55cfc18b234e87b15dba1727af7596",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "23a25f61fcda4c589f7888ea94b67d76",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DesignScript.Builtin.Dictionary.Values",
+      "Id": "6225550948fb44d692d89c74494d9d81",
+      "Inputs": [
+        {
+          "Id": "13b0ca253eca4108bf665e4dd5b6da36",
+          "Name": "dictionary",
+          "Description": "DesignScript.Builtin.Dictionary",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "32205ca2d6ff4a0690c2a7e7557e272e",
+          "Name": "values",
+          "Description": "Values of the dictionary",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Produces the values in a Dictionary.\n\nDictionary.Values: var[]"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DesignScript.Builtin.Dictionary.Components",
+      "Id": "97fd3caae88f4f1ca6680debcf9f61cc",
+      "Inputs": [
+        {
+          "Id": "77b06f9f1ede4c17a31d1819bd8c1a64",
+          "Name": "dictionary",
+          "Description": "DesignScript.Builtin.Dictionary",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "568eca21ffd94449b2fc5838903ea4c2",
+          "Name": "keys",
+          "Description": "Keys of the dictionary",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "24d82ec89eed4fea88a7cb9ba1495b08",
+          "Name": "values",
+          "Description": "Values of the dictionary",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Produces the components of a Dictionary. The reverse of Dictionary.ByKeysValues.\n\nDictionary.Components ( ): var[]..[]"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "x[0];",
+      "Id": "118769692d1e4d089d890147b8c76efd",
+      "Inputs": [
+        {
+          "Id": "a53c47c3d95b44d09c8fa5e3ac172bcb",
+          "Name": "x",
+          "Description": "x",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "d112ac28d5d54666beb5fb8cc47923e3",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DSCore.List.UniqueItems@var[]..[]",
+      "Id": "8a52f77029924fa68d778300594b3e19",
+      "Inputs": [
+        {
+          "Id": "0bb9c79cc6b745aea5a75c5cf9a63c8e",
+          "Name": "list",
+          "Description": "List to filter duplicates out of.\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "00c81045ee34428fbb78be0a1aa7f9c8",
+          "Name": "list",
+          "Description": "Filtered list.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Creates a new list containing all unique items in the given list.\n\nList.UniqueItems (list: var[]..[]): var[]..[]"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "957ce242abb74fe382b2054c890eed66",
+      "End": "d84c13db916b4250a9c53a7af0fa93e2",
+      "Id": "a748f45ac88d4c24849079cf78c49c93",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "4f467cd1610c4dbd910ea893c28a13f0",
+      "End": "24210ea1f59f4216bb568a1da7429a1b",
+      "Id": "2d310e84e947464c9ce0e26f92ce2b4a",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "cd050daef1294a20b0ceb1d303d4d3a5",
+      "End": "5558595eeedf44cf9185365b9801c604",
+      "Id": "ab8951e6d041426fb52056830a9c1b98",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "cd050daef1294a20b0ceb1d303d4d3a5",
+      "End": "d30f0fcf37044bbba6c6d4305bd08081",
+      "Id": "97733ef3ac6f42cd93168e136b22185c",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "8bd174f809e64abca2c0413ee39e212c",
+      "End": "13b0ca253eca4108bf665e4dd5b6da36",
+      "Id": "da3b08ef23e94972b82c9e3d5f9510ad",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "8bd174f809e64abca2c0413ee39e212c",
+      "End": "8c55cfc18b234e87b15dba1727af7596",
+      "Id": "60f7166ab80f4e0ab6184a48179e503a",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "8bd174f809e64abca2c0413ee39e212c",
+      "End": "77b06f9f1ede4c17a31d1819bd8c1a64",
+      "Id": "2b51cb6a3f084c6d8f8d870beab157eb",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "2adb3c1ca87a4333a80ecb6b9dffd7df",
+      "End": "98ff14873b1d46c2813e95f241648f95",
+      "Id": "55a8c2a8839a4de8ba4ac2112c73479d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "24d82ec89eed4fea88a7cb9ba1495b08",
+      "End": "a53c47c3d95b44d09c8fa5e3ac172bcb",
+      "Id": "f94091a35f3840388733bc6a5b4021d4",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "d112ac28d5d54666beb5fb8cc47923e3",
+      "End": "0bb9c79cc6b745aea5a75c5cf9a63c8e",
+      "Id": "e3b629bc4d9243bc9247815a52a173f4",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [
+    "f153d48d-85dd-4a7e-8ba2-91b08d81e5e7"
+  ],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "spring nodes",
+      "Version": "210.1.1",
+      "ReferenceType": "Package",
+      "Nodes": [
+        "d9826d5d8e4c4f519c71fe4f671357d1"
+      ]
+    }
+  ],
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "2.12",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "1.10",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.13.1.3887",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Name": "Python Script",
+        "ShowGeometry": true,
+        "Id": "0de9cc63da084763a011d236e45f5603",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": true,
+        "X": 284.31849653808075,
+        "Y": 152.60929772502473
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "730f968cd0e349d4b6443dffa7e74a9f",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 585.66666666666674,
+        "Y": 270.66666666666669
+      },
+      {
+        "Name": "List.UniqueItems",
+        "ShowGeometry": true,
+        "Id": "94bac40373d74eb382f348a41dc23013",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 827.33333333333314,
+        "Y": 445.99999999999989
+      },
+      {
+        "Name": "Boolean",
+        "ShowGeometry": true,
+        "Id": "85aa784083eb445a9b277c2009b98113",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 2.6013847675565671,
+        "Y": 281.3076162215628
+      },
+      {
+        "Name": "Python3 inheritance does not work",
+        "ShowGeometry": true,
+        "Id": "9d220265b249493296213f3a46c81fd6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": true,
+        "X": 218.62512363996024,
+        "Y": 561.92680514342214
+      },
+      {
+        "Name": "Python Script",
+        "ShowGeometry": true,
+        "Id": "d19aa93a61b24da4a0edb9fb4775e800",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -183.6681226286392,
+        "Y": 830.69501310947874
+      },
+      {
+        "Name": "Views",
+        "ShowGeometry": true,
+        "Id": "64265ecc4dcd472a810c3da8fd1f29b8",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -578.23785556632447,
+        "Y": 831.27265900463181
+      },
+      {
+        "Name": "ꟿ Collect.CurrentSelection",
+        "ShowGeometry": true,
+        "Id": "d9826d5d8e4c4f519c71fe4f671357d1",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -382.75964391691411,
+        "Y": 368.35014836795244
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "bb879b6c655f475da9c330f8107948d2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 163.81260305392959,
+        "Y": 798.58269316895053
+      },
+      {
+        "Name": "Dictionary.Values",
+        "ShowGeometry": true,
+        "Id": "6225550948fb44d692d89c74494d9d81",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 145.1244520272212,
+        "Y": 979.8582703893843
+      },
+      {
+        "Name": "Dictionary.Components",
+        "ShowGeometry": true,
+        "Id": "97fd3caae88f4f1ca6680debcf9f61cc",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 148.60055607226553,
+        "Y": 1147.0591587367228
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "118769692d1e4d089d890147b8c76efd",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 517.54590656312439,
+        "Y": 1239.0933214036779
+      },
+      {
+        "Name": "List.UniqueItems",
+        "ShowGeometry": true,
+        "Id": "8a52f77029924fa68d778300594b3e19",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 857.16244013384153,
+        "Y": 1308.7729377349319
+      }
+    ],
+    "Annotations": [
+      {
+        "Id": "1121890bb6f646b484131fd01411624f",
+        "Title": "https://github.com/DynamoDS/Dynamo/wiki/Work-in-progress-to-improve-Python-3-support",
+        "DescriptionText": null,
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [],
+        "HasNestedGroups": false,
+        "Left": 224.01582591493525,
+        "Top": 505.88724035608294,
+        "Width": 0.0,
+        "Height": 0.0,
+        "FontSize": 36.0,
+        "InitialTop": 0.0,
+        "InitialHeight": 0.0,
+        "TextblockHeight": 0.0,
+        "Background": "#FFC1D676"
+      }
+    ],
+    "X": 394.77492198694705,
+    "Y": -482.426492762311,
+    "Zoom": 0.77051684820224542
+  }
+}
